@@ -8,13 +8,25 @@ before writing any fix.
 1. Decide which registered findings are in scope for this remediation pass (typically:
    everything Critical and High; Medium/Low may stay backlog — your call, but state it).
 2. Invoke the `planner` subagent (see [`.claude/agents/planner.md`](../../../.claude/agents/planner.md))
-   in Mode 1, giving it `RISK_REGISTER.md` and your target finding-ID list.
+   in Mode 1, giving it `RISK_REGISTER.md` and your target finding-ID list:
+
+   ```text
+   Using RISK_REGISTER.md, produce a remediation plan. For each step:
+   target file(s), one-line fix, expected post-fix state, success criterion.
+   Critical severity first, then High. Number steps in priority order.
+   Save to docs/plans/plan.md.
+   ```
 3. `planner` writes `docs/plans/plan.md` using the structure in
    `.claude/rules/spec-template.md` — steps ordered Critical → High → Medium → Low, each
    with target files, a fix description, expected post-fix state, and a concrete success
    criterion.
 4. Invoke `code-to-spec-validator` in Mode A against the plan. If it reports gaps, address
    them — do not proceed to Stage 3 with a plan the validator flagged.
+
+   ```text
+   Validate docs/plans/plan.md against the payments-guardrails and coding-standards
+   rules. Return pass or fail and the corrections required before Stage 3.
+   ```
 
 ## Acceptance criteria
 

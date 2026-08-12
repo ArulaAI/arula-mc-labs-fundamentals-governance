@@ -22,6 +22,18 @@ For the V1 and V2 steps in `docs/plans/plan.md` only, in order:
 5. Invoke `pr-reviewer` against the diff. Per `.claude/rules/ai-use-policy.md` §2, do not
    pre-bias its prompt with your own confidence in the fix. Address every finding it
    raises — do not re-submit the same diff hoping for a different fresh-context outcome.
+
+   ```text
+   Review only the changes for remediation slice <1|2> against the payments-guardrails
+   and coding-standards rules and the step <1|2> acceptance criteria. You are not the author.
+   Do not soften findings. Confirm no PAN or CVV remains in logs, responses, headers or the store.
+   Return findings for this slice only, with PASS or FAIL.
+   ```
+
+   Failure-mode watch: if slice 1's fix masks the PAN in the response but still logs it,
+   the reviewer must fail it (correctly solving the wrong problem). If a fix references a
+   nonexistent masker or dependency, the guardrail flags it (hallucination / invented
+   dependency).
 6. Once validator and reviewer both pass, add an entry to `FIXES.md` for this finding.
 
 ## Acceptance criteria

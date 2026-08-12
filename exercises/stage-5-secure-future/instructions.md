@@ -5,7 +5,15 @@ a roadmap, not an implementation.
 
 ## Steps
 
-1. Invoke the `planner` subagent in Mode 2 (secure-future guide).
+1. Invoke the `planner` subagent in Mode 2 (secure-future guide):
+
+   ```text
+   Write docs/secure-features-guide.md describing proactive controls to adopt next:
+   a Spring Security filter chain with deny-by-default, PAN tokenization and vaulting,
+   idempotency keys on authorization, per-PAN and per-merchant rate limiting for TPS
+   spikes, structured audit logging for admin actions, and secure error handling.
+   No code changes.
+   ```
 2. `planner` should ground every proposed control in what actually exists in this
    codebase — e.g., the unenforced `idempotencyKey` field is a concrete anchor for an
    idempotency-enforcement control; generic "add rate limiting" advice disconnected from
