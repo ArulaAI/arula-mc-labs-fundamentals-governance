@@ -1,0 +1,6 @@
+{
+  "id": "fundamentals-governance",
+  "targets": ["V1", "V2"],
+  "rubric": "fundamentals.rubric.yaml",
+  "minutes": 120
+}

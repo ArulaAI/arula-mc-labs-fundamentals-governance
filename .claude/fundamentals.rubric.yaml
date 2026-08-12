@@ -1,0 +1,63 @@
+# Lab 1 grading rubric — "fundamentals-governance" — evaluated by
+# .claude/hooks/lab-grader.sh, referenced by .claude/lab.json's "rubric" field.
+#
+# Scoring items map directly to Lab1_Build_Instructions_Foundations_Governance.md
+# §3.5: registered all findings, plan ordered Critical first, two failing tests at
+# the Stage 3 checkpoint, both targets green after Stage 4, no PAN/CVV in logs or
+# responses, backlog left intact, /hand-off entry per stage. Weights sum to 100.
+#
+# Known limitation on the Stage-3-checkpoint item: grading runs after the lab is
+# complete, when both security tests are green again — there is no reliable way for
+# a bash rubric to prove they were red at an earlier point in time without richer
+# journey-event content than this lab's journey_record hook currently captures.
+# "security-tests-both-slices" below is a structural proxy (the test file exists
+# and is substantial enough to plausibly hold 2 slices x 2-3 tests each), not a
+# historical-state check — documented here rather than silently overclaimed.
+
+- id: findings-registered
+  title: All findings registered in RISK_REGISTER.md
+  weight: 15
+  check: min_line_count
+  path: RISK_REGISTER.md
+  min_lines: 6
+
+- id: plan-critical-first
+  title: Remediation plan orders Critical severity findings first
+  weight: 10
+  check: file_contains
+  path: docs/plans/plan.md
+  pattern: Critical
+
+- id: security-tests-both-slices
+  title: Security tests authored for both remediation slices (structural proxy — see header note)
+  weight: 10
+  check: min_line_count
+  path: src/test/java/com/mc/auth/SecurityTest.java
+  min_lines: 30
+
+- id: both-targets-green
+  title: V1 and V2 security tests (and the baseline) pass right now
+  weight: 25
+  check: shell
+  cmd: mvn -q test
+  expect_exit: 0
+
+- id: no-cardholder-data-leak
+  title: No PAN or CVV in logs, responses, headers, or persisted stores
+  weight: 20
+  check: quality_gate_pass
+  gate: cardholder-data
+
+- id: backlog-intact
+  title: Backlog findings (V3 + hygiene items) remain Open, not silently dropped
+  weight: 10
+  check: file_contains
+  path: RISK_REGISTER.md
+  pattern: Open
+
+- id: hand-off-per-stage
+  title: A /hand-off entry was recorded for every stage (0 through 6)
+  weight: 10
+  check: journey_event_count
+  event_type: hand_off
+  min_count: 7

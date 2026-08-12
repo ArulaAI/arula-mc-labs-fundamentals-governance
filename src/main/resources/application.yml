@@ -1,0 +1,13 @@
+spring:
+  application:
+    name: lab-card-auth
+  threads:
+    virtual:
+      enabled: true
+
+server:
+  port: 8080
+
+logging:
+  level:
+    root: INFO

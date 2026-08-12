@@ -1,0 +1,4 @@
+target/
+.claude/journey/
+.claude/quality-gates-latest.json
+.claude/.pom-dependency-baseline.txt
