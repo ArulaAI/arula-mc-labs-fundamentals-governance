@@ -55,6 +55,32 @@ echo "$OUT3" | grep -q '"id":"shell-passes".*"passed":true' && check 0 "shell ch
 echo "$OUT3" | grep -q '"id":"shell-fails".*"passed":false' && check 0 "shell check: failing command scores passed:false" || check 1 "shell check: failing command scores passed:false"
 rm -rf "$T3"
 
+# --- pattern_count check type: counts occurrences, not just presence ---
+T4="$(mktemp -d)"
+mkdir -p "$T4/.claude/journey"
+printf '**Summary:** a\n**Summary:** b\n**Summary:** c\n' > "$T4/tracker.md"
+cat > "$T4/.claude/fundamentals.rubric.yaml" <<'EOF'
+- id: enough-occurrences
+  title: At least 3 Summary lines
+  weight: 50
+  check: pattern_count
+  path: tracker.md
+  pattern: \*\*Summary:\*\*
+  min_count: 3
+
+- id: too-many-required
+  title: Requires more occurrences than exist
+  weight: 50
+  check: pattern_count
+  path: tracker.md
+  pattern: \*\*Summary:\*\*
+  min_count: 5
+EOF
+OUT4="$(bash "$GRADER" "$T4" --run-id run_pattern --format json)"
+echo "$OUT4" | grep -q '"id":"enough-occurrences".*"passed":true' && check 0 "pattern_count: 3 occurrences meets min_count 3" || check 1 "pattern_count: 3 occurrences meets min_count 3"
+echo "$OUT4" | grep -q '"id":"too-many-required".*"passed":false' && check 0 "pattern_count: 3 occurrences fails min_count 5" || check 1 "pattern_count: 3 occurrences fails min_count 5"
+rm -rf "$T4"
+
 # Missing rubric must fail loudly (exit 1), not silently produce a fake grade.
 T2="$(mktemp -d)"
 if bash "$GRADER" "$T2" --format json >/dev/null 2>&1; then

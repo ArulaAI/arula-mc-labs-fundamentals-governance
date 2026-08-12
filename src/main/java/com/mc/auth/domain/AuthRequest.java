@@ -4,9 +4,6 @@ import jakarta.validation.constraints.NotBlank;
 
 /**
  * An authorization or preauthorization request.
- *
- * {@code idempotencyKey} is intentionally nullable — the seeded service does
- * not yet enforce it (see the lab's V3 finding).
  */
 public record AuthRequest(
         @NotBlank String pan,

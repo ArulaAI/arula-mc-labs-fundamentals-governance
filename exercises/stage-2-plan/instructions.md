@@ -5,16 +5,18 @@ before writing any fix.
 
 ## Steps
 
-1. Decide which registered findings are in scope for this remediation pass (typically:
-   everything Critical and High; Medium/Low may stay backlog — your call, but state it).
+1. The remediation scope for this pass is **not** a judgment call here — it's fixed by
+   `.claude/lab.json`'s `targets` field: `V1` and `V2` only. Every other registered
+   finding (V3, and any hygiene items) stays `Open` as documented backlog; do not plan
+   fixes for them, even if they'd be easy.
 2. Invoke the `planner` subagent (see [`.claude/agents/planner.md`](../../../.claude/agents/planner.md))
    in Mode 1, giving it `RISK_REGISTER.md` and your target finding-ID list:
 
    ```text
-   Using RISK_REGISTER.md, produce a remediation plan. For each step:
-   target file(s), one-line fix, expected post-fix state, success criterion.
-   Critical severity first, then High. Number steps in priority order.
-   Save to docs/plans/plan.md.
+   Using RISK_REGISTER.md, produce a remediation plan for findings V1 and V2 only
+   (per .claude/lab.json). For each step: target file(s), one-line fix, expected
+   post-fix state, success criterion. Critical severity first, then High.
+   Number steps in priority order. Save to docs/plans/plan.md.
    ```
 3. `planner` writes `docs/plans/plan.md` using the structure in
    `.claude/rules/spec-template.md` — steps ordered Critical → High → Medium → Low, each

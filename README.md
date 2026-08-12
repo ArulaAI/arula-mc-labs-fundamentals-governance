@@ -13,8 +13,12 @@ room could trust.
 
 - Java 21, Maven 3.9+
 - Claude Code
-- No other tooling required — this lab is deliberately offline-capable (no network calls
-  during grading or quality gates)
+- **`bash`** — every hook, command, and the grader are pure POSIX shell scripts. On
+  Windows this means Git Bash (bundled with [Git for Windows](https://git-scm.com/download/win))
+  or WSL; macOS and Linux ship `bash` already. Nothing else is required beyond that.
+- No network access required at runtime — this lab is deliberately offline-capable (no
+  outbound calls during grading or quality gates; standard Maven dependency resolution on
+  first build is the only network activity, same as any Maven project)
 
 ## Getting started
 

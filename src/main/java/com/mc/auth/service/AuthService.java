@@ -10,20 +10,6 @@ import com.mc.auth.repo.InMemorySessionStore;
 
 /**
  * Authorization decisioning and role resolution.
- *
- * <p><b>Seeded finding V1 (Critical):</b> {@link #authorize} logs the full
- * PAN and CVV at INFO, and returns them unmasked in the {@link AuthDecision}
- * ({@link com.mc.auth.api.AuthController} then serializes that straight into
- * the response body and an {@code X-Card-PAN} header).
- * {@link PanTools#mask(String)} exists and is correct but is never called
- * here.
- *
- * <p><b>Seeded finding V2 (Critical):</b> {@link #resolveRole} fails open —
- * a missing or blank bearer token resolves to {@code "admin"} instead of
- * being rejected. Any non-blank token resolves to {@code "user"} with no
- * real verification. Callers ({@code AuthController}, {@code AdminController})
- * compound this by never checking the resolved role is actually
- * {@code "admin"} before performing admin-scoped actions.
  */
 @Service
 public class AuthService {
@@ -49,8 +35,7 @@ public class AuthService {
     }
 
     /**
-     * Resolves a caller's role from a bearer token. Fails OPEN: no token, or
-     * a blank token, resolves to {@code "admin"} rather than being denied.
+     * Resolves a caller's role from a bearer token.
      */
     public String resolveRole(String bearerToken) {
         if (bearerToken == null || bearerToken.isBlank()) {

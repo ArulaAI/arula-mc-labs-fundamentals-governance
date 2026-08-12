@@ -59,13 +59,13 @@ GATES_JSON="$LAB_ROOT/.claude/quality-gates-latest.json"
 #   - id: <slug>
 #     title: <text>
 #     weight: <int>
-#     check: file_exists | file_contains | min_line_count | quality_gate_pass | journey_event_count | shell
-#     path: <relative path>            (file_exists, file_contains, min_line_count)
-#     pattern: <grep -E pattern>       (file_contains)
+#     check: file_exists | file_contains | min_line_count | pattern_count | quality_gate_pass | journey_event_count | shell
+#     path: <relative path>            (file_exists, file_contains, min_line_count, pattern_count)
+#     pattern: <grep -E pattern>       (file_contains, pattern_count)
 #     min_lines: <int>                 (min_line_count)
+#     min_count: <int>                 (pattern_count, journey_event_count)
 #     gate: <gate-name>                (quality_gate_pass — matches a key in quality-gates-latest.json)
 #     event_type: <type>               (journey_event_count)
-#     min_count: <int>                 (journey_event_count)
 #     cmd: <shell command>             (shell — run from LAB_ROOT; no colon in the command,
 #                                        since "key: value" parsing splits on the first ": ")
 #     expect_exit: <int>               (shell — default 0)
@@ -129,6 +129,25 @@ check_min_line_count() {
     [ -n "$n" ] && [ "$n" -ge "$min" ]
 }
 
+# check_pattern_count <path> <pattern> <min_count>
+# Counts lines matching <pattern> (grep -E, one match per line) rather than
+# just checking presence — use when "at least N occurrences" matters, e.g.
+# "a '## Stage' header per stage" where a single file_contains would be
+# satisfied by just one stage's entry.
+check_pattern_count() {
+    local path="$1" pattern="$2" min="$3"
+    local target="$LAB_ROOT/$path" n
+    [ -f "$target" ] || return 1
+    # NOTE: `grep -c` prints "0" on zero matches but still exits 1 — a
+    # `|| echo 0` fallback here would double-fire (grep's own "0" output
+    # PLUS the fallback's), corrupting the later integer comparison with a
+    # two-line "0\n0" string. Default via ${n:-0} instead, which only
+    # substitutes on a genuinely empty/unset capture (e.g. a read error).
+    n=$(grep -cE "$pattern" "$target" 2>/dev/null)
+    n="${n:-0}"
+    [ "$n" -ge "$min" ]
+}
+
 check_quality_gate_pass() {
     local gate="$1"
     [ -f "$GATES_JSON" ] || return 1
@@ -141,7 +160,9 @@ check_quality_gate_pass() {
 check_journey_event_count() {
     local event_type="$1" min_count="$2" n
     [ -f "$JOURNEY_FILE" ] || return 1
-    n=$(grep -c "\"type\":\"$event_type\"" "$JOURNEY_FILE" 2>/dev/null || echo 0)
+    # See check_pattern_count's note on why this isn't `|| echo 0`.
+    n=$(grep -c "\"type\":\"$event_type\"" "$JOURNEY_FILE" 2>/dev/null)
+    n="${n:-0}"
     [ "$n" -ge "$min_count" ]
 }
 
@@ -194,6 +215,9 @@ while IFS= read -r record; do
             ;;
         min_line_count)
             check_min_line_count "${F[path]:-}" "${F[min_lines]:-0}" && ok=true
+            ;;
+        pattern_count)
+            check_pattern_count "${F[path]:-}" "${F[pattern]:-}" "${F[min_count]:-1}" && ok=true
             ;;
         quality_gate_pass)
             check_quality_gate_pass "${F[gate]:-}" && ok=true

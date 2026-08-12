@@ -53,8 +53,10 @@ must be loaded. There's nothing to install or sync.
 
 Security tests assert the **secure** behavior, so they **fail before remediation** — that
 failure is the evidence the vulnerability is real. Remediation turns them green. Do not
-write tests that lock in the current unsafe behavior. At the Stage 3 checkpoint, exactly
-two reds are expected and everything else stays green.
+write tests that lock in the current unsafe behavior. At the Stage 3 checkpoint, both
+slices (V1 and V2 — 2-3 test methods each, so 4-6 individual failures total) are expected
+to be red, and everything else stays green. "Two reds" means two failing *slices*, not a
+literal count of 2 JUnit methods.
 
 ## How the stages work
 
@@ -81,8 +83,10 @@ that gate exists to catch is *accepting a fix unread because you already believe
   `Open` — untouched, not silently resolved.
 - **Stage 5 — Secure future.** `planner` writes `docs/secure-features-guide.md` — proactive
   controls grounded in this specific codebase, no code changes.
-- **Stage 6 — Governance.** Run `mvn verify` to trigger the quality gates (cardholder-data
-  scan, secret scan, coverage report, unknown-dependency check). Finish `SECURITY.md`,
+- **Stage 6 — Governance.** Ask Claude Code to run `mvn verify` — the quality gates
+  (cardholder-data scan, secret scan, coverage report, unknown-dependency check) fire as a
+  hook on Claude Code's own tool call, so they only trigger when Claude Code runs the
+  command, not when you type it in a separate terminal window. Finish `SECURITY.md`,
   confirm every stage has a `/hand-off` entry in `docs/workflow-tracker.md`, then `/grade`.
 
 ## Grade yourself

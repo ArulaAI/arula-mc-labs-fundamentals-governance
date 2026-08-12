@@ -53,9 +53,11 @@ own hooks directly):
 - **Journey recording** (`.claude/hooks/journey-record.sh`) — appends a redacted, hashed event
   to `.claude/journey/<session_id>.jsonl` on every tool use, prompt, and session/subagent
   boundary. Never stores raw prompt/tool text — only a SHA-256 hash and a masked preview.
-- **Quality gates** (`.claude/hooks/quality-gates.sh`) — fires after every `mvn test`/`mvn
-  verify`, runs 4 non-blocking gates (cardholder-data scan, secret scan, coverage report,
-  unknown-dependency diff), writes `.claude/quality-gates-latest.json`.
+- **Quality gates** (`.claude/hooks/quality-gates.sh`) — a `PostToolUse` hook on Claude
+  Code's own `Bash` tool calls, so it only fires when *Claude Code* runs `mvn test`/`mvn
+  verify` — not when you run the same command in a separate terminal, CI, or any other way
+  outside a Claude Code session. Runs 4 non-blocking gates (cardholder-data scan, secret
+  scan, coverage report, unknown-dependency diff), writes `.claude/quality-gates-latest.json`.
 - **Lab grader** (`.claude/hooks/lab-grader.sh`, wired via `/grade`) — against
   `.claude/fundamentals.rubric.yaml`; deterministic, same journey file always yields the
   same score.

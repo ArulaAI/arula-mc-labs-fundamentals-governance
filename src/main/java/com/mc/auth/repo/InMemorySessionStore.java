@@ -14,22 +14,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import org.springframework.stereotype.Repository;
 
 /**
- * In-memory hold store and "audit" writer.
- *
- * <p><b>Seeded finding V1 (Critical):</b> {@link #appendAuditLog} writes the
- * full PAN and CVV, in cleartext, to {@code target/auth-audit.log}. It also
- * persists the CVV on {@link Hold} itself — cardholder data that should never
- * be retained past the authorization call. {@code PanTools.mask()} is never
- * called anywhere in this class.
- *
- * <p><b>Seeded finding V3 (High):</b> {@link #createHold} is a classic
- * check-then-act race: when an {@code idempotencyKey} is supplied, it looks
- * up the existing hold and only inserts if absent — but the lookup and the
- * insert are two separate, unsynchronized operations on a
- * {@link ConcurrentHashMap}. Two concurrent retries with the same key can
- * both pass the lookup before either insert lands, producing two holds for
- * one logical authorization. When {@code idempotencyKey} is {@code null},
- * there is no dedup at all — every retry creates a new hold unconditionally.
+ * In-memory hold store and audit writer.
  */
 @Repository
 public class InMemorySessionStore {
@@ -81,10 +66,7 @@ public class InMemorySessionStore {
     }
 
     /**
-     * Writes the full hold — including PAN and CVV — to
-     * {@code target/auth-audit.log}. This is the primary leak path for V1;
-     * {@link com.mc.auth.service.PanTools#mask(String)} exists and is correct
-     * but is not used here.
+     * Writes the hold to {@code target/auth-audit.log}.
      */
     private void appendAuditLog(Hold hold) {
         try {
@@ -98,7 +80,6 @@ public class InMemorySessionStore {
                 writer.write(line);
             }
         } catch (IOException e) {
-            // Backlog: verbose stack traces / error handling is not hardened yet.
             throw new RuntimeException("audit log write failed", e);
         }
     }

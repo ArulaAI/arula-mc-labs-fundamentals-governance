@@ -1,9 +1,7 @@
 package com.mc.auth.service;
 
 /**
- * PAN utilities. {@link #mask(String)} exists and is correct — the seeded
- * finding V1 is that {@code AuthService}/{@code AuthController} do not call
- * it on the logging, response, or persistence paths.
+ * PAN utilities.
  */
 public final class PanTools {
 
@@ -20,8 +18,7 @@ public final class PanTools {
     }
 
     /**
-     * Luhn checksum validation. Present but not wired into request validation
-     * anywhere yet — part of the documented backlog (weak PAN validation).
+     * Luhn checksum validation.
      */
     public static boolean isLuhnValid(String pan) {
         if (pan == null || pan.isBlank()) {

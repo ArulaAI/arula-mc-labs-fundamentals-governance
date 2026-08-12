@@ -53,11 +53,24 @@
   weight: 10
   check: file_contains
   path: RISK_REGISTER.md
-  pattern: Open
+  # Pipe-bounded so this only matches an actual table cell ("| Open |"), not the
+  # template's own legend line ("Status: `Open` | `In Progress` | `Remediated`"),
+  # which would otherwise satisfy this criterion with zero real findings registered.
+  pattern: \|[[:space:]]*Open[[:space:]]*\|
 
 - id: hand-off-per-stage
   title: A /hand-off entry was recorded for every stage (0 through 6)
   weight: 10
-  check: journey_event_count
-  event_type: hand_off
+  # Counts "**Summary:**" lines in docs/workflow-tracker.md rather than the
+  # journey's hand_off event type — .claude/commands/hand-off.md explicitly
+  # permits skipping that event when session_id isn't known, on the stated
+  # reasoning that the workflow-tracker.md write is itself sufficient evidence.
+  # "**Summary:**" (not "## Stage") is the marker on purpose: the template
+  # pre-seeds all 7 "## Stage N" headers as empty placeholders so participants
+  # never start from a blank page, so counting headers would trivially pass
+  # before any real work happened. "**Summary:**" only appears once hand-off.md
+  # actually fills in an entry.
+  check: pattern_count
+  path: docs/workflow-tracker.md
+  pattern: \*\*Summary:\*\*
   min_count: 7

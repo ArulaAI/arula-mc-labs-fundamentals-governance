@@ -61,6 +61,14 @@ not something to silently allow (`ai-use-policy.md` §4).
   named in the seeded-findings table (`AuthController` x2, `AdminController` x2), not just
   the first one a participant notices.
 
+**Terminology note — "two reds" means two *slices*, not two literal JUnit methods.**
+Each slice gets 2-3 individual test methods (so 4-6 total methods across both slices), but
+the Stage 3 checkpoint's "two reds" refers to the two slices being collectively red — i.e.
+`SecurityTest` reports failures in both the V1-slice group and the V2-slice group, not
+literally exactly 2 failed test methods. If a participant or co-facilitator counts JUnit's
+"X tests failed" number and gets 4, 5, or 6 rather than 2, that's expected, not a bug —
+clarify this up front rather than letting it read as a discrepancy against this doc.
+
 ## Exact secure behaviors the Stage 3 tests must assert
 
 **Slice 1 (V1 — cardholder-data exposure), 2-3 tests:**
@@ -92,7 +100,7 @@ their corresponding slice is remediated — not before, not delayed until both s
 | End of Stage 0 | green (not yet run this session, but was green on clone) | doesn't exist yet | doesn't exist yet | — |
 | End of Stage 1 | green | doesn't exist yet | doesn't exist yet | Behavior demoed manually (curl), not via tests yet |
 | End of Stage 2 | green | doesn't exist yet | doesn't exist yet | Plan written, not executed |
-| End of Stage 3 | green | **red** | **red** | Exactly two reds expected — this is the checkpoint named in the doc |
+| End of Stage 3 | green | **red** | **red** | "Two reds" = both slices red (4-6 individual test methods total) — see the terminology note above |
 | Mid Stage 4 (after slice 1 fix) | green | **green** | red | Slice 2 not yet touched |
 | End of Stage 4 | green | green | **green** | Both targets green; V3 and hygiene backlog untouched |
 | End of Stage 6 | green | green | green | `mvn verify` green, quality gates reviewed, `SECURITY.md` complete |
