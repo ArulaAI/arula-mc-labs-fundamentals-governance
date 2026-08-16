@@ -1,13 +1,22 @@
 spring:
   application:
-    name: lab-card-auth
-  threads:
-    virtual:
-      enabled: true
+    name: lab-refunds-s2i
+  datasource:
+    url: jdbc:h2:mem:refunds;DB_CLOSE_DELAY=-1
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: ""
+  sql:
+    init:
+      mode: always
+      schema-locations: classpath:schema.sql
 
 server:
   port: 8080
 
-logging:
-  level:
-    root: INFO
+refunds:
+  # Stage 4 build target: processOnlineRefund() must honour this toggle.
+  online-refund-enabled: true
+  # Whether online-refund retrieval responses may include the authorization code.
+  # Default OFF -- the non-negotiable is: null the auth code unless this is explicitly ON.
+  return-authorization-data-to-merchants: false

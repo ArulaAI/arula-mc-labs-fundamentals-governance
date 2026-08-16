@@ -1,12 +1,12 @@
-package com.mc.auth;
+package com.mc.pgs.refunds;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 @SpringBootApplication
-public class AuthApplication {
+public class RefundsApplication {
 
     public static void main(String[] args) {
-        SpringApplication.run(AuthApplication.class, args);
+        SpringApplication.run(RefundsApplication.class, args);
     }
 }

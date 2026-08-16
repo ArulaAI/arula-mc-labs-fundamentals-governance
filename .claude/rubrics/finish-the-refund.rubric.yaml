@@ -1,0 +1,123 @@
+# Lab 1: Finish the Refund -- grading rubric for lab-grader.
+#
+# Known DSL limitation, documented rather than silently worked around: journey_record.py's
+# post-tool event only logs {"tool": tool_name} -- it does not capture exit codes or command
+# output. This means the rubric CANNOT mechanically prove "mvn verify went green" or "the
+# quality gate passed" from the journey log alone. Criteria below lean on repo-artifact content
+# checks (file_contains*) wherever a real signal exists, and on journey event checks only for
+# genuinely event-shaped things (a stage ran, a hand-off happened). Anything the DSL can't prove
+# is exactly what the facilitator's live Stage-4 spot-check is for -- see "Grading integrity and
+# facilitator continuity" in MASTERCARD_LABS_STAGE_BREAKDOWN.md. The rubric is a backstop, not
+# the whole control.
+lab: 1
+title: "Finish the Refund -- Foundations, Governance and the Five Failure Modes"
+pass_threshold: 70
+
+criteria:
+  - id: harness-confirmed
+    description: "Stage 0: /lab ran and a journey event actually landed (not just exit 0)"
+    max_score: 5
+    check: "event_exists:session-start"
+
+  # --- All ten findings registered, each with a real file citation (content check, not just
+  # existence -- a placeholder row must not score) ---
+  - id: f1-registered
+    description: "F1 registered, citing the real affected file"
+    max_score: 4
+    check: "file_contains_all:RISK_REGISTER.md:F1,RefundService"
+  - id: f2-registered
+    description: "F2 registered, citing the real affected file"
+    max_score: 4
+    check: "file_contains_all:RISK_REGISTER.md:F2,RefundService"
+  - id: f3-registered
+    description: "F3 registered, citing the real affected file"
+    max_score: 4
+    check: "file_contains_all:RISK_REGISTER.md:F3,RefundController"
+  - id: f4-registered
+    description: "F4 registered, citing the real affected file"
+    max_score: 4
+    check: "file_contains_all:RISK_REGISTER.md:F4,PreRiskAssessmentClient"
+  - id: f5-registered-and-escalated
+    description: "F5 registered AND explicitly escalated -- not defaulted"
+    max_score: 8
+    check: "file_contains_all:RISK_REGISTER.md:F5,escalat"
+  - id: f6-registered
+    description: "F6 registered, citing the real affected file"
+    max_score: 3
+    check: "file_contains_all:RISK_REGISTER.md:F6,RefundService"
+  - id: f7-registered
+    description: "F7 registered, citing the real affected file"
+    max_score: 3
+    check: "file_contains_all:RISK_REGISTER.md:F7,RefundController"
+  - id: f8-registered
+    description: "F8 registered, citing the real affected file"
+    max_score: 4
+    check: "file_contains_all:RISK_REGISTER.md:F8,RefundController"
+  - id: f9-registered
+    description: "F9 registered, citing the real affected file"
+    max_score: 3
+    check: "file_contains_all:RISK_REGISTER.md:F9,RefundService"
+  - id: f10-registered
+    description: "F10 registered, citing the real affected file"
+    max_score: 3
+    check: "file_contains_all:RISK_REGISTER.md:F10,RefundController"
+
+  # --- Plan, Critical first ---
+  - id: plan-critical-first
+    description: "docs/plans/plan.md exists and orders Critical findings first"
+    max_score: 5
+    check: "file_contains_all:docs/plans/plan.md:Critical,F1"
+
+  # --- Fixes: F1/F2 closed with a fresh-context pr-reviewer PASS attached to each ---
+  - id: f1-fixed-with-review
+    description: "F1 fixed, with a pr-reviewer PASS recorded in FIXES.md"
+    max_score: 8
+    check: "file_contains_all:FIXES.md:F1,PASS"
+  - id: f2-fixed-with-review
+    description: "F2 fixed, with a pr-reviewer PASS recorded in FIXES.md"
+    max_score: 8
+    check: "file_contains_all:FIXES.md:F2,PASS"
+
+  # --- F8: resolved via the build itself, not by eye ---
+  - id: f8-resolved
+    description: "F8 (layering violation) resolved -- FIXES.md records it, not just the register"
+    max_score: 6
+    check: "file_contains_all:FIXES.md:F8,ArchUnit"
+
+  # --- Backlog integrity: findings NOT in scope must stay documented, not silently dropped ---
+  - id: backlog-intact
+    description: "F3,F4,F6,F7,F9,F10 still listed as backlog in RISK_REGISTER.md -- not fixed, not deleted"
+    max_score: 6
+    check: "file_contains_all:RISK_REGISTER.md:F3,F4,F6,F7,F9,F10"
+
+  # --- Look ahead: no code ---
+  - id: secure-features-guide
+    description: "docs/secure-features-guide.md written, naming concrete next controls"
+    max_score: 5
+    check: "file_contains_all:docs/secure-features-guide.md:correlation,tokenisation"
+
+  # --- Close: audit trail complete, PAN-clean, security posture documented ---
+  - id: workflow-tracker-complete
+    description: "docs/workflow-tracker.md has all 7 stage hand-offs, each citing its own artifact"
+    max_score: 10
+    check: "file_contains_all:docs/workflow-tracker.md:RISK_REGISTER.md,plan.md,FIXES.md,secure-features-guide.md,SECURITY.md"
+  - id: security-md-complete
+    description: "SECURITY.md lists F1/F2/F8 as controls and the backlog as known risks, F5 marked escalated"
+    max_score: 6
+    check: "file_contains_all:SECURITY.md:F1,F2,F8,escalat"
+  - id: no-pan-in-risk-register
+    description: "No PAN or secrets leaked into RISK_REGISTER.md while documenting F1"
+    max_score: 4
+    check: "file_secret_scan_clean:RISK_REGISTER.md"
+  - id: no-pan-in-journey
+    description: "No PAN or secrets in the journey log itself"
+    max_score: 3
+    check: "secret_scan_clean"
+
+  # --- Grading-integrity anti-gaming check: does the tracker cite 7 DISTINCT artifacts, not
+  # the same template pasted seven times? Coarse but real: five distinct filenames must all
+  # appear, which a single pasted-template entry cannot satisfy on its own. ---
+  - id: hand-off-not-templated
+    description: "Hand-off entries reference distinct artifacts per stage, not one template x7"
+    max_score: 4
+    check: "file_contains_all:docs/workflow-tracker.md:Stage 0,Stage 1,Stage 2,Stage 3,Stage 4,Stage 5,Stage 6"
