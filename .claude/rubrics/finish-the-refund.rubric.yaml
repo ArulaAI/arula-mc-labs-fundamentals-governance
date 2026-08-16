@@ -4,11 +4,23 @@
 # post-tool event only logs {"tool": tool_name} -- it does not capture exit codes or command
 # output. This means the rubric CANNOT mechanically prove "mvn verify went green" or "the
 # quality gate passed" from the journey log alone. Criteria below lean on repo-artifact content
-# checks (file_contains*) wherever a real signal exists, and on journey event checks only for
-# genuinely event-shaped things (a stage ran, a hand-off happened). Anything the DSL can't prove
-# is exactly what the facilitator's live Stage-4 spot-check is for -- see "Grading integrity and
-# facilitator continuity" in MASTERCARD_LABS_STAGE_BREAKDOWN.md. The rubric is a backstop, not
-# the whole control.
+# checks (file_contains*/file_row_contains_all/file_table_rows_gte) wherever a real signal
+# exists, and on journey event checks only for genuinely event-shaped things (a stage ran, a
+# hand-off happened). Anything the DSL can't prove is exactly what the facilitator's live
+# Stage-4 spot-check is for -- see "Grading integrity and facilitator continuity" in
+# MASTERCARD_LABS_STAGE_BREAKDOWN.md. The rubric is a backstop, not the whole control.
+#
+# Second known limitation, found and fixed this pass, not just theorized: a plain
+# file_contains_all check is a whole-file substring search -- a single line crammed with every
+# keyword the rubric looks for used to score 110/110 with zero real content (confirmed by
+# direct testing). The per-finding and F5 criteria below now use file_row_contains_all (all
+# keywords must co-occur on ONE line, not just anywhere in the file) paired with
+# risk-register-ten-rows (requires the register to actually look like a table with real rows,
+# not one crammed line). This raises the bar substantially -- a gamer now needs something that
+# looks like ten distinct, real register rows, not one line of keywords -- but it is still not
+# a claim of being unbeatable. A sufficiently motivated participant could still write ten fake
+# rows without doing real analysis; the facilitator spot-check remains the actual backstop for
+# that, same as it always was.
 lab: 1
 title: "Finish the Refund -- Foundations, Governance and the Five Failure Modes"
 pass_threshold: 70
@@ -19,48 +31,57 @@ criteria:
     max_score: 5
     check: "event_exists:session-start"
 
-  # --- All ten findings registered, each with a real file citation (content check, not just
-  # existence -- a placeholder row must not score) ---
-  - id: f1-registered
-    description: "F1 registered, citing the real affected file"
-    max_score: 4
-    check: "file_contains_all:RISK_REGISTER.md:F1,RefundService"
-  - id: f2-registered
-    description: "F2 registered, citing the real affected file"
-    max_score: 4
-    check: "file_contains_all:RISK_REGISTER.md:F2,RefundService"
-  - id: f3-registered
-    description: "F3 registered, citing the real affected file"
-    max_score: 4
-    check: "file_contains_all:RISK_REGISTER.md:F3,RefundController"
-  - id: f4-registered
-    description: "F4 registered, citing the real affected file"
-    max_score: 4
-    check: "file_contains_all:RISK_REGISTER.md:F4,PreRiskAssessmentClient"
-  - id: f5-registered-and-escalated
-    description: "F5 registered AND explicitly escalated -- not defaulted"
+  # --- Structural: the register must actually be shaped like a table with real rows, not one
+  # crammed line. RISK_REGISTER.md's template is a header row + 10 data rows = 11 non-separator
+  # table-shaped rows -- this is what directly defeats the single-line-cram exploit. ---
+  - id: risk-register-ten-rows
+    description: "RISK_REGISTER.md is a real table with a header plus all ten finding rows, not a crammed line"
     max_score: 8
-    check: "file_contains_all:RISK_REGISTER.md:F5,escalat"
-  - id: f6-registered
-    description: "F6 registered, citing the real affected file"
-    max_score: 3
-    check: "file_contains_all:RISK_REGISTER.md:F6,RefundService"
-  - id: f7-registered
-    description: "F7 registered, citing the real affected file"
-    max_score: 3
-    check: "file_contains_all:RISK_REGISTER.md:F7,RefundController"
-  - id: f8-registered
-    description: "F8 registered, citing the real affected file"
+    check: "file_table_rows_gte:RISK_REGISTER.md:11"
+
+  # --- All ten findings registered, each with a real file citation, co-occurring on the SAME
+  # row (content check, not just existence -- a placeholder row, or keywords scattered across
+  # unrelated lines, must not score) ---
+  - id: f1-registered
+    description: "F1 registered, citing the real affected file, on one row"
     max_score: 4
-    check: "file_contains_all:RISK_REGISTER.md:F8,RefundController"
+    check: "file_row_contains_all:RISK_REGISTER.md:F1,RefundService"
+  - id: f2-registered
+    description: "F2 registered, citing the real affected file, on one row"
+    max_score: 4
+    check: "file_row_contains_all:RISK_REGISTER.md:F2,RefundService"
+  - id: f3-registered
+    description: "F3 registered, citing the real affected file, on one row"
+    max_score: 4
+    check: "file_row_contains_all:RISK_REGISTER.md:F3,RefundController"
+  - id: f4-registered
+    description: "F4 registered, citing the real affected file, on one row"
+    max_score: 4
+    check: "file_row_contains_all:RISK_REGISTER.md:F4,PreRiskAssessmentClient"
+  - id: f5-registered-and-escalated
+    description: "F5 registered AND explicitly escalated on one row -- not defaulted"
+    max_score: 8
+    check: "file_row_contains_all:RISK_REGISTER.md:F5,escalat"
+  - id: f6-registered
+    description: "F6 registered, citing the real affected file, on one row"
+    max_score: 3
+    check: "file_row_contains_all:RISK_REGISTER.md:F6,RefundService"
+  - id: f7-registered
+    description: "F7 registered, citing the real affected file, on one row"
+    max_score: 3
+    check: "file_row_contains_all:RISK_REGISTER.md:F7,RefundController"
+  - id: f8-registered
+    description: "F8 registered, citing the real affected file, on one row"
+    max_score: 4
+    check: "file_row_contains_all:RISK_REGISTER.md:F8,RefundController"
   - id: f9-registered
-    description: "F9 registered, citing the real affected file"
+    description: "F9 registered, citing the real affected file, on one row"
     max_score: 3
-    check: "file_contains_all:RISK_REGISTER.md:F9,RefundService"
+    check: "file_row_contains_all:RISK_REGISTER.md:F9,RefundService"
   - id: f10-registered
-    description: "F10 registered, citing the real affected file"
+    description: "F10 registered, citing the real affected file, on one row"
     max_score: 3
-    check: "file_contains_all:RISK_REGISTER.md:F10,RefundController"
+    check: "file_row_contains_all:RISK_REGISTER.md:F10,RefundController"
 
   # --- Plan, Critical first ---
   - id: plan-critical-first
@@ -72,17 +93,17 @@ criteria:
   - id: f1-fixed-with-review
     description: "F1 fixed, with a pr-reviewer PASS recorded in FIXES.md"
     max_score: 8
-    check: "file_contains_all:FIXES.md:F1,PASS"
+    check: "file_row_contains_all:FIXES.md:F1,PASS"
   - id: f2-fixed-with-review
     description: "F2 fixed, with a pr-reviewer PASS recorded in FIXES.md"
     max_score: 8
-    check: "file_contains_all:FIXES.md:F2,PASS"
+    check: "file_row_contains_all:FIXES.md:F2,PASS"
 
   # --- F8: resolved via the build itself, not by eye ---
   - id: f8-resolved
     description: "F8 (layering violation) resolved -- FIXES.md records it, not just the register"
     max_score: 6
-    check: "file_contains_all:FIXES.md:F8,ArchUnit"
+    check: "file_row_contains_all:FIXES.md:F8,ArchUnit"
 
   # --- Backlog integrity: findings NOT in scope must stay documented, not silently dropped ---
   - id: backlog-intact
