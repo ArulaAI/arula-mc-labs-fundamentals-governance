@@ -86,8 +86,9 @@ exists to catch is *accepting a fix unread because you already believe it works*
   scoped to F1/F2 plus building `processOnlineRefund()`. Review it against the plugin's
   guardrail rules and the spec's own acceptance criteria before moving on.
 - **Stage 3 — Prove it's broken.** Direct-prompt JUnit 5 tests asserting the intended behavior
-  for F1 and F2. Checkpoint: `mvn test` shows exactly two new reds (plus the pre-existing
-  `ArchitectureIT` failure at `mvn verify`), everything else green.
+  for F1 and F2. Checkpoint: `mvn test` shows exactly two new reds, everything else green — and
+  `mvn verify` reports the same two, not three. `ArchitectureIT` (F8) is still genuinely red
+  underneath, it just doesn't get re-reported in this run; see "Test model" above for why.
 - **Stage 4 — Remediate and build.** Fix F1 with the smallest diff, validate, fresh-context
   `pr-reviewer`. Fix F2 the same way. `mvn verify` will still fail on ArchUnit until F8 is
   addressed — move the privilege-evaluation logic out of `RefundController` into

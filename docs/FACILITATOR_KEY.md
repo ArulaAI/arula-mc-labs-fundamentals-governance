@@ -97,14 +97,53 @@ that's a bonus, not an expectation.
 
 Both slices must be **red** before any Stage 4 fix, and **green** immediately after their
 corresponding slice is remediated. `ArchitectureIT` (F8) is *also* red at this checkpoint and
-has been since a fresh clone — but a single `mvn verify` invocation will only ever **report
+has been since a fresh clone — but a plain `mvn verify` invocation will only ever **report
 two** failures here, not three: Maven halts at the first failing phase (`test`/surefire), so it
 never reaches the later `verify`/failsafe phase where `ArchitectureIT` lives once the two new
 unit tests are also red. This is a real, confirmed Maven behavior, not a lab bug — brief
 facilitators on it explicitly, since "why does it only show two, I was told three" is exactly
-the kind of thing that reads as unpreparedness live if nobody's ready for the question. To see
-F8's failure directly at this checkpoint without waiting for Stage 4:
-`mvn verify -Dtest=ArchitectureIT -DfailIfNoTests=false -Dsurefire.skip=true`.
+the kind of thing that reads as unpreparedness live if nobody's ready for the question.
+
+**To see all three failures together in one command:** `mvn verify -Dmaven.test.failure.ignore=true`.
+Verified directly, not assumed: this tells surefire not to halt the build on a test failure, so
+Maven actually continues on to the failsafe phase and reports `ArchitectureIT`'s failure too —
+you'll see all three `[ERROR] ... FAILURE!` blocks in the output. **The catch, worth stating out
+loud before anyone runs it**: the build's final line still says `BUILD SUCCESS`, because that's
+literally what "ignore" means to Maven — it did not treat the failures as build-halting, it did
+not make them pass. Read the `[ERROR]` lines above the final line, not the final line alone, or
+this trades one confusing moment for a different one. (An earlier version of this section
+documented `-Dtest=ArchitectureIT -DfailIfNoTests=false -Dsurefire.skip=true` — that command
+does print the ArchUnit failure, but for the wrong reason the doc claimed: `-Dsurefire.skip`
+isn't a real Maven property, and the command actually works by making *surefire itself* pick up
+the off-convention `*IT` class via `-Dtest=`, never touching failsafe at all — confirmed via
+`mvn help:describe` and by reading the console output, which says `surefire:test`, not
+`failsafe:integration-test`. Caught on a fresh re-review; corrected here.)
+
+## Mandatory Stage 1→2 spot-check — the rubric cannot substitute for this
+
+`.claude/rubrics/finish-the-refund.rubric.yaml` checks that `RISK_REGISTER.md` looks like a
+real, table-shaped, ten-row register citing real filenames. It cannot check that a row was
+actually *investigated* rather than copied from this document's own F1–F10 table above (which
+participants correctly have access to — `AGENTS.md` states the same table, since naming the
+findings is part of the teaching, not a secret). Confirmed directly: a fabricated-but-correctly-
+shaped register, assembled in a few minutes from `AGENTS.md`'s own content with zero real code
+analysis, passes every automated content check at full marks. This is not a gap the DSL can
+close — the correct answer looks identical whether a participant found it or copied it, and a
+journey-log-based check strong enough to tell the difference would depend on hook-data-delivery
+behavior that hasn't been independently confirmed working end-to-end (see the plugin's own known
+issues) — building a *required, scored* check on top of that risk is worse than not building it,
+since it could silently fail legitimate participants if that infrastructure turns out to be
+broken. This is exactly why "the facilitator's live spot-check is the actual backstop, not the
+rubric alone" is stated as a cross-lab principle, not lab-specific advice — treat the line below
+as a mandatory action, not optional colour:
+
+**Before a group moves from Stage 1 to Stage 2, pick 3 of their 10 `RISK_REGISTER.md` rows —
+mix a "Fix" target (F1 or F2) with at least one backlog item — and ask the group to show you the
+actual line(s) of code the row cites.** A group that found it themselves can do this in seconds
+and usually wants to, since they're proud of the catch. A group that copied the table cannot do
+this convincingly, and it surfaces immediately, before the group has invested another hour
+building on an unearned register. This costs under two minutes per group and is the only control
+in this lab that actually closes the gap the rubric structurally cannot.
 
 ## What's realistic in Stage 1
 

@@ -39,12 +39,29 @@ public class RefundController {
 
     @PostMapping("/refunds/offline")
     public ResponseEntity<RefundDecision> refundOffline(@RequestBody RefundRequest request) {
-        return ResponseEntity.ok(refundService.processOfflineRefund(request));
+        return toResponse(refundService.processOfflineRefund(request));
     }
 
     @PostMapping("/refunds/online")
     public ResponseEntity<RefundDecision> refundOnline(@RequestBody RefundRequest request) {
-        return ResponseEntity.ok(refundService.processOnlineRefund(request));
+        return toResponse(refundService.processOnlineRefund(request));
+    }
+
+    /**
+     * Infrastructure, not a seeded finding: maps a Declined decision to 409, so a correct F2
+     * fix in RefundService (which only needs to start returning Declined -- see
+     * FACILITATOR_KEY.md's smallest-diff outline) actually produces the 409 the spec's
+     * acceptance criteria require, rather than silently serializing as 200 OK. Scoped to
+     * exactly what's tested here -- every Declined this lab currently produces is an
+     * idempotency conflict, so a blanket 409 is correct; a service that later declines for a
+     * different reason (e.g. a disabled feature toggle) would want a more specific status, but
+     * nothing in this lab currently exercises that case.
+     */
+    private ResponseEntity<RefundDecision> toResponse(RefundDecision decision) {
+        if (decision instanceof RefundDecision.Declined) {
+            return ResponseEntity.status(409).body(decision);
+        }
+        return ResponseEntity.ok(decision);
     }
 
     /**
