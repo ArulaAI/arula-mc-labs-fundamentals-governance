@@ -1,17 +1,20 @@
 # Stage 0 — Hypothesis
 
-Before reading any source file beyond this one: this lab is described as a "deliberately
-vulnerable Spring Boot card-authorization service." Based on nothing but that description
-and your own experience with payments systems —
+Before you open a single source file:
 
-**Predict:** what are the 2-3 most likely categories of vulnerability a card-authorization
-service would be seeded with? Write your guess below, then move to Stage 1 and compare.
+**Predict:** given the scenario ("offline refund path shipped, tests green, then the team got
+pulled onto a Sev-2 before touching the online path"), guess how many real governance findings
+you think are hiding in the offline path that's already "done" and green.
 
 ## My prediction
 
-<!-- Fill in before Stage 1. No wrong answers — the point is calibrating your own instinct
-     against what you actually find. -->
+<!-- Your guess: a number, and one sentence on why. -->
 
 ## Confidence
 
-<!-- Low / Medium / High — how sure are you in this prediction? -->
+<!-- Low / Medium / High -->
+
+## After Stage 1
+
+Was your prediction close? The real number is ten. What surprised you about the gap between
+"green build" and "governance-clean"?

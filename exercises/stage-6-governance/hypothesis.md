@@ -1,13 +1,14 @@
 # Stage 6 — Hypothesis
 
-Before running the grader:
+Before running `/grade`:
 
-**Predict:** what score (as a percentage) do you expect, and which single rubric criterion
-(from `.claude/fundamentals.rubric.yaml`) are you least confident you satisfied?
+**Predict:** your overall percentage, and whether you think every content check will pass —
+specifically the F5-escalation check, since that's the one most groups get structurally wrong
+even when everything else is solid.
 
 ## My prediction
 
-<!-- Score guess + the criterion you're unsure about. -->
+<!-- Your guessed percentage, and yes/no on F5. -->
 
 ## Confidence
 
@@ -15,7 +16,6 @@ Before running the grader:
 
 ## After grading
 
-Compare your actual score and per-criterion results against your prediction. If there's a
-gap, is it because the grader checks something more mechanically than you expected, or
-because you actually missed something? This closes the loop on every hypothesis you made
-across the lab — look back at Stages 0–5's predictions too.
+Were you right? If the F5 check failed, look at exactly what `RISK_REGISTER.md` or `SECURITY.md`
+says about it right now — is it actually distinguishable from an ordinary backlog item, or does
+it read the same as F7/F9/F10?

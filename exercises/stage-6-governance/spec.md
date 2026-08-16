@@ -2,12 +2,13 @@
 
 ## What this stage produces
 
-`SECURITY.md` (complete), `docs/workflow-tracker.md` (all 7 stages present), and a grade
-artifact at `.claude/journey/<run-id>.grade.json`.
+`mvn verify` green, `SECURITY.md` complete, a full `docs/workflow-tracker.md` audit trail, and a
+grade.
 
 ## Done means
 
-- `SECURITY.md` accurately reflects `RISK_REGISTER.md` and `FIXES.md` — no drift
-- `docs/workflow-tracker.md` has a hand-off entry per stage, 0 through 6
-- The grader has run successfully and produced a grade artifact
-- All backlog findings remain `Open`
+- `mvn verify` fully green (ArchUnit, tests, JaCoCo report)
+- `SECURITY.md`: Security Controls (F1, F2, F8) and Known Risks (F3, F4, F6, F7, F9, F10)
+  complete, F5 explicitly marked escalated in its own row
+- `docs/workflow-tracker.md`: 7 stage entries, each citing a distinct real artifact filename
+- `/grade` run and its per-criterion breakdown reviewed

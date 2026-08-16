@@ -2,14 +2,14 @@
 
 ## What this stage produces
 
-Code fixes for **V1 and V2 only** (`.claude/lab.json` `targets`), plus `FIXES.md` entries,
-verified by both security-test slices turning green, `code-to-spec-validator` and
-`pr-reviewer` runs, and quality-gate review.
+F1 and F2 fixed (each with a `FIXES.md` entry and a fresh-context `pr-reviewer` PASS), F8
+resolved (`mvn verify` green on ArchUnit), and `processOnlineRefund()` built to spec.
 
 ## Done means
 
-- Both security-test slices pass; `BaselineTest.java` still passes
-- `FIXES.md` has exactly two entries (V1, V2), each with a validator + reviewer outcome
-- Quality gates were run and their output reviewed, not ignored
+- `mvn verify` fully green
+- `FIXES.md` has exactly two entries: F1, F2 (F8 gets a `FIXES.md` entry too, since it's
+  genuinely fixed this pass even though it isn't a `.claude/lab.json` target)
+- `RISK_REGISTER.md` updated: F1, F2, F8 marked `Remediated`; everything else untouched
 - Diffs are scoped to their target finding only — no unrelated cleanup bundled in
-- V3 and every hygiene-backlog finding remain untouched and still `Open` in `RISK_REGISTER.md`
+- F3–F7, F9, F10 remain untouched and still `Open`
