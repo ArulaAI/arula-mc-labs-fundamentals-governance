@@ -2,13 +2,11 @@
 
 ## What this stage produces
 
-`docs/plans/plan.md`, matching the structure in `.claude/rules/spec-template.md`, produced
-by the `planner` subagent and checked by `code-to-spec-validator`.
+`docs/plans/plan.md`, produced by `planner`, reviewed by you before moving on.
 
 ## Done means
 
-- Plan file exists, structure matches the template exactly
-- Steps ordered Critical → High → Medium → Low
-- Every step: target file(s), fix description, expected post-fix state, success criterion
-- `code-to-spec-validator` ran against it; any gaps it raised were resolved, not ignored
-- Findings not targeted by this plan are still `Open` in `RISK_REGISTER.md`
+- Critical severity first
+- Scoped to exactly F1, F2, and the `processOnlineRefund()` build
+- Each step has a target file, a concrete task, and a success criterion
+- No step silently expands into F3–F10 or the out-of-scope Void/settlement work

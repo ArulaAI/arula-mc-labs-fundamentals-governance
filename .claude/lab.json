@@ -1,6 +1,6 @@
 {
-  "id": "fundamentals-governance",
-  "targets": ["V1", "V2"],
-  "rubric": "fundamentals.rubric.yaml",
+  "id": "finish-the-refund",
+  "targets": ["F1", "F2"],
+  "rubric": ".claude/rubrics/finish-the-refund.rubric.yaml",
   "minutes": 120
 }

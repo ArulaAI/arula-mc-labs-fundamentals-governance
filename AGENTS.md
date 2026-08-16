@@ -1,88 +1,119 @@
-# AGENTS.md — arula-mc-labs-fundamentals-governance
+# AGENTS.md — lab-refunds-s2i
 
 This file is the canonical instruction set for Claude Code (and any future harness) working
 in this repository. `CLAUDE.md` imports it directly.
 
 ## What this repo is
 
-**Lab 1: Fundamentals & Governance** — a deliberately vulnerable Spring Boot card-authorization
-service, used to teach governed, audited, fresh-context-reviewed AI-assisted secure
-engineering. Participant-facing flow lives in [LAB_ACTION_GUIDE.md](LAB_ACTION_GUIDE.md);
-architecture/prerequisites in [README.md](README.md); facilitator-only answer key in
-[docs/FACILITATOR_KEY.md](docs/FACILITATOR_KEY.md).
+**Lab 1: Finish the Refund — Foundations, Governance and the Five Failure Modes** — a Spring
+Boot refunds service built on Mastercard PGS's real backlog thread `G1190-3291` (Support Refunds
+for S2I transactions, Phase 1), used to teach governed, audited, fresh-context-reviewed
+AI-assisted engineering on payment-grade code. Participant-facing flow lives in
+[LAB_ACTION_GUIDE.md](LAB_ACTION_GUIDE.md); architecture/prerequisites in [README.md](README.md);
+facilitator-only answer key in [docs/FACILITATOR_KEY.md](docs/FACILITATOR_KEY.md).
 
-## Commands
+## Prerequisites
+
+- Claude Code, latest version (this repo depends on the `workbench` plugin, which requires
+  2.1.177+ per its own `docs/ARCHITECTURE.md` — no floor to manage below that, build against
+  latest).
+- The `workbench` plugin installed from the private marketplace:
+  `claude plugin install workbench@<marketplace>` (confirm the exact marketplace name before
+  session day — the plugin repo's own marketplace folder was deliberately removed, see its
+  commit history).
+- JDK 17 (Zulu recommended), Maven 3.9+. `~/.m2` should be pre-warmed on lab machines before
+  session day.
+
+## Commands (from the `workbench` plugin)
 
 | Command | Purpose |
 |---|---|
-| [`/lab`](.claude/commands/lab.md) | Reports lab id, remediation targets, rubric, and time budget from `.claude/lab.json` |
-| [`/hand-off`](.claude/commands/hand-off.md) | Closes out the current stage, appends to `docs/workflow-tracker.md` |
-| [`/grade`](.claude/commands/grade.md) | Runs `.claude/hooks/lab-grader.sh` against `.claude/fundamentals.rubric.yaml` |
+| `/lab` | Reports lab id, remediation targets, rubric, and time budget from `.claude/lab.json` |
+| `/hand-off` | Closes out the current stage, appends to `docs/workflow-tracker.md` |
+| `/grade` | Runs `lab-grader` against `.claude/rubrics/finish-the-refund.rubric.yaml` |
 
-`.claude/lab.json` is the machine-readable lab contract: `{"id":"fundamentals-governance",
-"targets":["V1","V2"],"rubric":"fundamentals.rubric.yaml","minutes":120}`. **Only V1 and V2
-are remediated this pass** — V3 stays a registered, `Open` finding, not a remediation
-target. Do not treat `.claude/lab.json`'s `targets` list as optional guidance; it's the
-enforced scope for Stage 4.
+`.claude/lab.json`: `{"id":"finish-the-refund","targets":["F1","F2"],"rubric":".claude/rubrics/finish-the-refund.rubric.yaml","minutes":120}`.
+**Only F1 and F2 are remediation targets this pass, plus building `processOnlineRefund()`.**
+F8 gets resolved too, but mechanically — the build itself won't go green until it's fixed
+(see Seeded findings, below). F3–F7, F9, F10 are registered/backlog, not remediation targets.
 
-## Rules that apply to every change in this repo
+## Rules that apply to every change in this repo (from the `workbench` plugin)
 
 Read these before making any change — they are not optional context, they are the review bar:
 
-- [`.claude/rules/payments-guardrails.md`](.claude/rules/payments-guardrails.md) — cardholder-data handling, fail-closed authorization, idempotency, no invented dependencies, smallest diff, backlog discipline
-- [`.claude/rules/ai-use-policy.md`](.claude/rules/ai-use-policy.md) — human-in-the-loop, fresh-context review, logged assumptions, no scope creep, full auditability, synthetic data only
-- [`.claude/rules/coding-standards.md`](.claude/rules/coding-standards.md) — Java/Spring Boot baseline (scoped to `**/*.java`, `pom.xml` via frontmatter)
-- [`.claude/rules/spec-template.md`](.claude/rules/spec-template.md) — required structure for `docs/plans/plan.md` and `docs/secure-features-guide.md`
+- `payments-guardrails.md` — cardholder-data handling, PAN/authorization-code masking, ISO 8583
+  field constraints, no invented dependencies, smallest diff, backlog discipline
+- `ai-use-policy.md` — human-in-the-loop, fresh-context review, logged assumptions, no scope
+  creep, full auditability, synthetic data only
+- `coding-standards.md` — Java/Spring Boot baseline, testing and git conventions
+- `spec-template.md` — required structure for `docs/plans/plan.md` and
+  `docs/secure-features-guide.md`
 
-## Subagents
+## Subagents (from the `workbench` plugin)
 
-Three subagents run in **fresh context** — they never inherit the reasoning or self-confidence
-of the session that did the work, which is the whole point (see `ai-use-policy.md` §2):
+Subagents run in **fresh context** — they never inherit the reasoning or self-confidence of the
+session that did the work, which is the whole point (see `ai-use-policy.md`):
 
 | Agent | Purpose | Tools |
 |---|---|---|
-| [`planner`](.claude/agents/planner.md) | Turns `RISK_REGISTER.md` into an ordered `docs/plans/plan.md`, or produces `docs/secure-features-guide.md` | Read, Grep, Glob, Write |
-| [`code-to-spec-validator`](.claude/agents/code-to-spec-validator.md) | Validates a plan against the template, or a change against a finding's acceptance criteria | Read, Grep, Glob |
-| [`pr-reviewer`](.claude/agents/pr-reviewer.md) | Skeptical, read-only review of a diff against coding standards — cannot Write or Edit | Read, Grep, Glob |
+| `planner` | Turns `RISK_REGISTER.md` into an ordered `docs/plans/plan.md`, or produces `docs/secure-features-guide.md` (guide mode) | Read, Bash |
+| `pr-reviewer` | Skeptical, read-only review of a diff against `coding-standards.md` — cannot Write or Edit | Read |
 
-## Automatic governance (hooks)
+`code-to-spec-validator` and `clean-room-judge` also ship in the plugin but are not used in Lab
+1 by design — they're introduced starting Lab 2. Don't invoke them here; it would blur the
+pedagogical progression the series is built around.
 
-Wired in `.claude/settings.json`, always active (no per-repo opt-in — this repo commits its
-own hooks directly):
+## Automatic governance (hooks, from the `workbench` plugin)
 
-- **Journey recording** (`.claude/hooks/journey-record.sh`) — appends a redacted, hashed event
-  to `.claude/journey/<session_id>.jsonl` on every tool use, prompt, and session/subagent
-  boundary. Never stores raw prompt/tool text — only a SHA-256 hash and a masked preview.
-- **Quality gates** (`.claude/hooks/quality-gates.sh`) — a `PostToolUse` hook on Claude
-  Code's own `Bash` tool calls, so it only fires when *Claude Code* runs `mvn test`/`mvn
-  verify` — not when you run the same command in a separate terminal, CI, or any other way
-  outside a Claude Code session. Runs 4 non-blocking gates (cardholder-data scan, secret
-  scan, coverage report, unknown-dependency diff), writes `.claude/quality-gates-latest.json`.
-- **Lab grader** (`.claude/hooks/lab-grader.sh`, wired via `/grade`) — against
-  `.claude/fundamentals.rubric.yaml`; deterministic, same journey file always yields the
-  same score.
+Active once the plugin is installed — no per-repo hook code committed here:
+
+- **Journey recording** (`journey_record.py`) — appends a redacted event to
+  `.claude/journey/<session_id>.jsonl` (this repo sets `WORKBENCH_JOURNEY_DIR=.claude/journey`
+  in `.claude/settings.json`) on every tool use and session boundary. PAN/secret patterns are
+  redacted before writing.
+- **Quality gates** (`quality_gates.py`) — secret/PAN scan on every tool call, plus lint/coverage
+  on the fuller `mvn verify` pass. This is a reporting gate, not a blocking one — see
+  `gate_guard.py` below for the actual blocking mechanism.
+- **Gate-guard** (`gate_guard.py`) — blocks `Write`/`Edit`/`MultiEdit`/`NotebookEdit` calls whose
+  target path matches `.claude/gate-guard.json`'s deny list. This repo denies `reference/**` —
+  the Stage-4 fallback folder stays read-only during a live session.
+- **Lab grader** (`lab-grader` skill, wired via `/grade`) — against
+  `.claude/rubrics/finish-the-refund.rubric.yaml`; deterministic, same journey file always
+  yields the same score. See the rubric file's own header comment for a documented limitation:
+  it can verify repo-artifact *content* (via `file_contains*` checks) but cannot yet verify a
+  build's pass/fail result from the journey log alone — that's the facilitator's live Stage-4
+  spot-check, not a rubric gap to silently paper over.
+- **ArchUnit** (`ArchitectureIT`, in this repo's own test suite, not the plugin) — build-blocking
+  in `mvn verify` from day one. See F8 below.
 
 ## The seeded findings
 
-Three vulnerabilities are seeded in the card-auth service on purpose, for participants to
-find in Stage 1 — do not "fix" them ahead of time or point them out unprompted. Full detail
-(OWASP mapping, smallest-diff outline, exact test assertions) is in
-[docs/FACILITATOR_KEY.md](docs/FACILITATOR_KEY.md), facilitator-only.
+Ten findings are seeded on purpose, every one traceable to `pgs-lab-spec-pack.md` (Spec 1).
+Two get fixed by hand, one is caught mechanically by the build, the rest are registered and
+deliberately left as backlog. Full detail (smallest-diff outline, exact test assertions, live
+traps) is in [docs/FACILITATOR_KEY.md](docs/FACILITATOR_KEY.md), facilitator-only — do not "fix"
+anything beyond F1/F2/F8 ahead of time or point findings out unprompted.
 
-- **V1 — Cardholder-data exposure** (Critical, remediation target): PAN/CVV logged and
-  returned in responses (`AuthService`, `AuthController`, `InMemorySessionStore`)
-- **V2 — Authorization fail-open** (Critical, remediation target): missing/blank bearer
-  token resolves to `"admin"` (`AuthService.resolveRole`), and admin endpoints never check
-  the resolved role (`AdminController`)
-- **V3 — Idempotency race condition** (High, **registered but not remediated this pass**):
-  `InMemorySessionStore.createHold` does an unsynchronized check-then-act on
-  `idempotencyKey`. This is a real, unfixed finding — distinct from the hygiene backlog
-  below — left `Open` in `RISK_REGISTER.md` by design (see `.claude/lab.json` `targets`).
+| | Finding | Failure mode | Where | Action |
+|---|---|---|---|---|
+| F1 | Authorization code and full refund record logged at INFO; raw request context logged on failure | Sensitive data leak | `RefundService` | **Fix** |
+| F2 | No idempotency — a retried refund creates a second record; 409 never returned | Incorrectly solving the right problem | `RefundService.processOfflineRefund` | **Fix** |
+| F3 | `voidRefund()` answers on `POST /void-refunds` — Void is explicitly out of scope | Correctly solving the wrong problem | `RefundController` | Register |
+| F4 | `PreRiskAssessmentClient` called — spec has no pre-risk-assessment step | Hallucinated dependency | `service/PreRiskAssessmentClient.java` | Register |
+| F5 | `REFUND_EXPIRY` privilege exists; the window's value is genuinely undefined in the spec pack | Unauthorised default if silently invented | `RefundPrivilege` | Register + escalate — do not default it |
+| F6 | No gate on the excessive-refund path checking `EXCESSIVE_REFUNDS` | Missing privilege gate | `RefundService` | Backlog (live trap during Stage 4's online-refund build — see FACILITATOR_KEY) |
+| F7 | No correlation ID propagated end-to-end | — | `RefundController` | Backlog |
+| F8 | Controller depends on `RefundRecordDao` directly; privilege check lives in the controller | Layering violation | `RefundController` | **Caught by the build, not by eye** — `ArchitectureIT` fails `mvn verify` until fixed |
+| F9 | Hardcoded downstream settlement-notify URL | — | `RefundService` | Backlog |
+| F10 | No `@ControllerAdvice` — inconsistent error shape vs. Spring's default | — | `RefundController` | Backlog |
 
-Plus a documented hygiene backlog, never in scope to fix in this lab: no per-PAN/merchant
-rate limiting, weak PAN validation (`PanTools.isLuhnValid` unused), naive expiry parsing,
-verbose stack traces, no audit record for admin actions.
+A live trap in the quality gates, not the code: the unknown-dependency check is designed to
+catch a hallucinated Maven coordinate (e.g. a "PAN masking library") if one is proposed during
+Stage 4 remediation — the concrete version of Failure Mode 1 (Hallucination).
 
-A fourth trap lives in the quality gates, not the code: the unknown-dependency gate is
-designed to catch a hallucinated Maven coordinate (e.g. `com.mastercard:pan-vault`) if one
-is proposed during remediation — this is FM1 (Hallucinated Dependencies) made concrete.
+## Fidelity note
+
+This lab's endpoint shapes (`POST /refunds/offline`, `/refunds/online`, `/void-refunds`) are a
+simplified stand-in for PGS's real API contract — see `specs/refunds-s2i-phase1.spec.md` for
+what's simplified and why. The business rules and findings above are faithful to the real spec
+pack even though the endpoint shapes are not the literal production contract.

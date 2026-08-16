@@ -1,19 +1,19 @@
 # Stage 1 — Hypothesis
 
-Before you finish reading all four service files:
+Before you prompt Claude Code for the file-by-file review:
 
-**Predict:** which single file do you expect to contain the most severe finding, and why?
+**Predict:** how many of the ten findings do you think Claude Code's review will surface versus
+how many you'll have already found by eye or won't find at all?
 
 ## My prediction
 
-<!-- Name the file and your reasoning. -->
+<!-- Your guess: a rough split, e.g. "3 by eye, 5 by AI, 2 missed." -->
 
 ## Confidence
 
 <!-- Low / Medium / High -->
 
-## After registering your findings
+## After triage
 
-Compare against your Stage 0 category prediction. Did you find what you expected, or
-something you didn't anticipate? One or two sentences — this is for your own calibration,
-not graded.
+Was your split close? Which finding took the most judgment to correctly reject or accept — not
+the easiest one, the hardest one?
