@@ -1,9 +1,9 @@
 # Stage 5 — Hypothesis
 
-Before invoking `planner` in Mode 2:
+Before reading `planner`'s guide-mode output:
 
-**Predict:** name one proactive control you'd expect this guide to propose, based on what
-you've seen in the codebase so far.
+**Predict:** will it recommend anything that overlaps with F1/F2 (already fixed) instead of
+staying focused on the genuinely open backlog (F7, F9, F10)?
 
 ## My prediction
 
@@ -13,6 +13,7 @@ you've seen in the codebase so far.
 
 <!-- Low / Medium / High -->
 
-## After the guide is written
+## After review
 
-Did `planner` propose your control? What did it propose that you hadn't thought of?
+Did it stay grounded in this codebase's actual open gaps, or drift into generic advice? What did
+you have to push back on, if anything?

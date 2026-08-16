@@ -1,37 +1,26 @@
-# Stage 5 — Secure Future
+# Stage 5 — Look ahead
 
-**Goal:** Document proactive controls worth adopting next — no code changes. This stage is
-a roadmap, not an implementation.
+**Goal:** name what's next without doing it. No code changes this stage.
 
 ## Steps
 
-1. Invoke the `planner` subagent in Mode 2 (secure-future guide):
-
+1. Invoke `planner` in guide mode:
    ```text
-   Write docs/secure-features-guide.md describing proactive controls to adopt next:
-   a Spring Security filter chain with deny-by-default, PAN tokenization and vaulting,
-   idempotency keys on authorization, per-PAN and per-merchant rate limiting for TPS
-   spikes, structured audit logging for admin actions, and secure error handling.
-   No code changes.
+   Write docs/secure-features-guide.md describing proactive controls to adopt next,
+   grounded in this codebase: correlation IDs end to end, tokenisation, config
+   externalisation for the settlement-notify URL, deny-by-default validation, and
+   structured error handling via @ControllerAdvice. No code changes.
    ```
-2. `planner` should ground every proposed control in what actually exists in this
-   codebase — e.g., the unenforced `idempotencyKey` field is a concrete anchor for an
-   idempotency-enforcement control; generic "add rate limiting" advice disconnected from
-   the code is not what this stage is for.
-3. Review the output in `docs/secure-features-guide.md`. For each control, confirm you
-   understand *why* it matters for this specific service, not just that it sounds like
-   good practice in general.
-4. Do not implement any of the proposed controls in this stage — that would be scope creep
-   past this lab's remediation target (`.claude/rules/ai-use-policy.md` §4).
+2. Review it: every recommendation should be grounded in something specific to this codebase
+   (a real backlog finding — F7, F9, F10 — or a real gap in the current design), not generic
+   security advice that could apply to any service.
 
 ## Acceptance criteria
 
-- [ ] `docs/secure-features-guide.md` exists, matching the template in `spec-template.md`
-- [ ] Each control names what it is, why it matters *for this service*, and where it plugs in
-- [ ] No implementation code accompanies this document
-- [ ] No production code was modified in this stage
+- [ ] `docs/secure-features-guide.md` exists
+- [ ] Every recommendation ties back to something concrete in this codebase
+- [ ] No code was changed this stage
 
 ## Hand-off
 
-Log in `docs/workflow-tracker.md`: how many controls were proposed, and any you
-deliberately excluded (and why).
+`/hand-off` — cite `docs/secure-features-guide.md` as this stage's artifact.

@@ -2,11 +2,11 @@
 
 ## What this stage produces
 
-`docs/secure-features-guide.md`, matching the structure in `.claude/rules/spec-template.md`
-— proactive controls, no code.
+`docs/secure-features-guide.md` — proactive controls to adopt next, grounded in this specific
+codebase. No code.
 
 ## Done means
 
-- File exists, one section per control
-- Each control is grounded in this specific codebase, not generic advice
-- No code changes accompany this document
+- Names correlation IDs, tokenisation, config externalisation, deny-by-default validation, and
+  `@ControllerAdvice` — each tied to a real gap in this codebase (F7, F9, F10), not generic advice
+- Zero production code changes this stage

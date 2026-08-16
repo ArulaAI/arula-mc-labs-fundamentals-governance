@@ -1,93 +1,104 @@
-# Lab Action Guide — Fundamentals & Governance
+# Lab Action Guide — Finish the Refund
 
 ## Setup (5 minutes)
 
-1. **JDK 21** — `java -version` should report 21.
-2. **Build green** — from the repo root:
+1. **JDK 17** — `java -version` should report 17 (Zulu recommended).
+2. **Build state** — from the repo root:
    ```bash
-   mvn validate && mvn test && mvn verify
+   mvn validate && mvn test
    ```
-   You should see `BUILD SUCCESS`. This is the clean baseline — the vulnerabilities are
-   real code, and the suite passes *with them present*. Fixing two of them is your job.
-3. **Verify zero network** — this lab makes no outbound calls. If you want to prove it, run
-   the suite with your network disabled; it still passes.
-4. **Harness loaded** — run `/lab`. It should report lab id `fundamentals-governance`,
-   targets `V1, V2`, and a 120-minute budget, read straight from `.claude/lab.json`.
-   `/hand-off` and `/grade` should also be listed. The `payments-guardrails` and
-   `ai-use-policy` rules load automatically for every file — no separate install step.
+   Both should succeed (`BUILD SUCCESS`). Now run:
+   ```bash
+   mvn verify
+   ```
+   This **should fail** — on exactly one thing, an ArchUnit layering-violation message. That's
+   intended, not a broken lab: F8 is caught by the build itself, and you'll fix it in Stage 4.
+   If `mvn verify` fails for any other reason, or passes cleanly, flag your facilitator before
+   continuing.
+3. **Harness loaded** — run `/lab`. It should report lab id `finish-the-refund`, targets
+   `F1, F2`, and a 120-minute budget, read from `.claude/lab.json`. Then confirm a journey
+   event actually landed in `.claude/journey/` — not just that the command exited 0. `/hand-off`
+   should also be listed. The `payments-guardrails` and `ai-use-policy` rules (from the
+   `workbench` plugin) load automatically for every file — no separate install step beyond the
+   plugin install itself.
 
 ## Commands and how to run them
 
-| Command | Stage | What it does |
-|---|---|---|
-| `/lab` | 0 | Reports lab id, remediation targets, rubric, and time budget from `.claude/lab.json` |
-| `/hand-off` | every stage | Closes out the stage just finished; appends a structured entry to `docs/workflow-tracker.md` |
-| `/grade` | 6 | Runs `.claude/hooks/lab-grader.sh` against `.claude/fundamentals.rubric.yaml` and reports the grade card |
+| Command | Stage | What it does | Source |
+|---|---|---|---|
+| `/lab` | 0 | Reports lab id, remediation targets, rubric, and time budget from `.claude/lab.json` | `workbench` plugin |
+| `/hand-off` | every stage | Closes out the stage just finished; appends a structured entry to `docs/workflow-tracker.md` | this repo (no plugin equivalent) |
+| `/grade` | 6 | Runs `lab-grader` against `.claude/rubrics/finish-the-refund.rubric.yaml` and reports the grade card | `workbench` plugin |
 
 **This lab is intentionally light on slash commands.** Stages 1 and 3 are direct prompts to
-Claude Code, not wrapped commands — the point here is practicing unassisted comprehension
-and test-authoring before later labs hand you `spec-craft`/`sdet-architect`. Stages 2 and 4
-invoke the `planner`, `code-to-spec-validator`, and `pr-reviewer` **subagents** directly, by
-name, in your prompt — there's no `/plan` or `/review` wrapper. The exact prompt text for
-every stage lives in `exercises/stage-<n>-<name>/instructions.md`; this guide won't repeat
-it in full.
+Claude Code, not wrapped commands — the point here is practicing unassisted comprehension and
+test-authoring before later labs hand you `spec-craft`/`sdet-architect`. Stages 2 and 5 invoke
+the `planner` subagent directly by name; Stage 4 invokes `pr-reviewer` directly by name. The
+exact prompt text for every stage lives in `exercises/stage-<n>-<name>/instructions.md`; this
+guide won't repeat it in full.
 
-**If a command isn't recognized:** confirm Claude Code is open at the repo root — `.claude/`
-must be loaded. There's nothing to install or sync.
+**If a command isn't recognized:** confirm the `workbench` plugin is actually installed
+(`claude plugin install workbench@<marketplace>`) and that Claude Code is open at the repo root.
 
 ## The flow at a glance
 
 | # | Stage | Min | Surface | Entry point |
 |---|---|---|---|---|
-| 0 | Context and the five failure modes | 15 | facilitator walkthrough | `exercises/stage-0-setup/` |
+| 0 | Ground: harness and the five failure modes | 18 | facilitator walkthrough | `exercises/stage-0-setup/` |
 | 1 | Comprehend and register | 25 | direct prompt | `exercises/stage-1-comprehend-register/` |
-| 2 | Plan | 12 | `planner`, `code-to-spec-validator` | `exercises/stage-2-plan/` |
-| 3 | Failing security tests (top 2) | 18 | direct prompt | `exercises/stage-3-failing-tests/` |
-| 4 | Remediation (top 2 only) | 25 | edit, then `pr-reviewer` | `exercises/stage-4-remediation/` |
-| 5 | Secure-future guide | 10 | `planner` | `exercises/stage-5-secure-future/` |
-| 6 | Governance validation and reporting | 15 | quality gates, `/hand-off`, `/grade` | `exercises/stage-6-governance/` |
+| 2 | Plan | 12 | `planner` | `exercises/stage-2-plan/` |
+| 3 | Prove it's broken | 15 | direct prompt | `exercises/stage-3-failing-tests/` |
+| 4 | Remediate and build | 35 | edit, then `pr-reviewer` | `exercises/stage-4-remediation/` |
+| 5 | Look ahead | 8 | `planner` (guide mode) | `exercises/stage-5-secure-future/` |
+| 6 | Close | 7 | quality gates, `/hand-off`, `/grade` | `exercises/stage-6-governance/` |
 
-**Total: 120 minutes.**
+**Total: 120 minutes.** Stage 4 is deliberately the largest block — it's where the sycophancy
+trap fires and where the online refund path actually gets built. If your group is behind by the
+20-minute mark of Stage 4, ask your facilitator for the `reference/` fallback rather than
+rushing the fresh-context review step.
 
 ## Test model
 
-Security tests assert the **secure** behavior, so they **fail before remediation** — that
-failure is the evidence the vulnerability is real. Remediation turns them green. Do not
-write tests that lock in the current unsafe behavior. At the Stage 3 checkpoint, both
-slices (V1 and V2 — 2-3 test methods each, so 4-6 individual failures total) are expected
-to be red, and everything else stays green. "Two reds" means two failing *slices*, not a
-literal count of 2 JUnit methods.
+Tests assert the **intended/secure** behavior, so they **fail before remediation** — that
+failure is the evidence the gap is real. Do not write tests that lock in current unsafe or
+incomplete behavior. At the Stage 3 checkpoint, expect three reds: the two new slices (F1, F2)
+plus the pre-existing `ArchitectureIT` failure (F8) — everything else stays green.
 
 ## How the stages work
 
-You are driving. The AI proposes; you decide. Every stage ends with `/hand-off`, and
-Stage 4's two fixes each get their own fresh-context `pr-reviewer` pass — the failure mode
-that gate exists to catch is *accepting a fix unread because you already believe it works*.
+You are driving. The AI proposes; you decide. Every stage ends with `/hand-off`, and Stage 4's
+two fixes each get their own fresh-context `pr-reviewer` pass — the failure mode that gate
+exists to catch is *accepting a fix unread because you already believe it works*.
 
-- **Stage 0 — Context.** Facilitator frames the five failure modes: hallucination, correctly
-  solving the wrong problem, incorrectly solving the right problem, self-congratulation in
-  review, invented dependencies. No code yet.
-- **Stage 1 — Comprehend & register.** Run the app, observe the vulnerable behavior
-  firsthand, then prompt Claude Code to review the service. **Triage before you register:**
-  the finding is yours to confirm, not Claude's to hand you. Fill `RISK_REGISTER.md`
-  yourself, one row per finding — including backlog items you don't plan to fix.
-- **Stage 2 — Plan.** `planner` turns your register into `docs/plans/plan.md`, Critical
-  first. `code-to-spec-validator` checks it against the guardrail and coding-standards rules
-  before you move on — close any gaps it reports.
-- **Stage 3 — Failing tests.** Direct-prompt two slices of JUnit 5 + MockMvc tests, one per
-  in-scope finding. Checkpoint: `mvn test` shows exactly two reds, everything else green.
-- **Stage 4 — Remediate, top 2 only.** Fix V1 and V2 with the smallest diff each, run
-  `code-to-spec-validator` then `pr-reviewer` per slice. **Watch the traps:** a fix that
-  masks the PAN in the response but still logs it is "correctly solving the wrong problem" —
-  `code-to-spec-validator` should catch it. Everything else (V3, the hygiene backlog) stays
-  `Open` — untouched, not silently resolved.
-- **Stage 5 — Secure future.** `planner` writes `docs/secure-features-guide.md` — proactive
-  controls grounded in this specific codebase, no code changes.
-- **Stage 6 — Governance.** Ask Claude Code to run `mvn verify` — the quality gates
-  (cardholder-data scan, secret scan, coverage report, unknown-dependency check) fire as a
-  hook on Claude Code's own tool call, so they only trigger when Claude Code runs the
-  command, not when you type it in a separate terminal window. Finish `SECURITY.md`,
-  confirm every stage has a `/hand-off` entry in `docs/workflow-tracker.md`, then `/grade`.
+- **Stage 0 — Ground.** Facilitator frames: agents vs. skills vs. commands vs. rules, model
+  tiers, why context degrades, why an agent reviewing its own work passes it, then the five
+  failure modes, named. No code yet.
+- **Stage 1 — Comprehend and register.** First, with your own eyes, no AI: run the app, submit
+  the same refund twice (two records exist), open the log (authorization code in cleartext).
+  Then prompt Claude Code for a file-by-file review — no fixes yet. Then triage what comes
+  back: confirm real findings, reject decoys with a stated reason, rank by severity. Fill
+  `RISK_REGISTER.md` yourself, one row per finding, all ten, including backlog.
+- **Stage 2 — Plan.** `planner` turns your register into `docs/plans/plan.md`, Critical first,
+  scoped to F1/F2 plus building `processOnlineRefund()`. Review it against the plugin's
+  guardrail rules and the spec's own acceptance criteria before moving on.
+- **Stage 3 — Prove it's broken.** Direct-prompt JUnit 5 tests asserting the intended behavior
+  for F1 and F2. Checkpoint: `mvn test` shows exactly two new reds (plus the pre-existing
+  `ArchitectureIT` failure at `mvn verify`), everything else green.
+- **Stage 4 — Remediate and build.** Fix F1 with the smallest diff, validate, fresh-context
+  `pr-reviewer`. Fix F2 the same way. `mvn verify` will still fail on ArchUnit until F8 is
+  addressed — move the privilege-evaluation logic out of `RefundController` into
+  `RefundService`; you don't have to hunt for this by eye, the build tells you. Then build
+  `processOnlineRefund()`: honour `TOGGLE_ENABLE_ONLINE_REFUND`, null the authorization code
+  from retrieval unless the return-authorization-data toggle is ON, do **not** write settlement
+  records. **Watch the traps:** a PAN-masking-library request should fail the unknown-dependency
+  check; an offer to write the settlement leg should be declined; a naive build that skips the
+  `EXCESSIVE_REFUNDS` check reproduces F6 live. Update `RISK_REGISTER.md` and `FIXES.md`.
+- **Stage 5 — Look ahead.** `planner` in guide mode writes `docs/secure-features-guide.md` —
+  proactive controls grounded in this codebase (correlation IDs, tokenisation, config
+  externalisation, deny-by-default validation, `@ControllerAdvice`). No code changes.
+- **Stage 6 — Close.** Run `mvn verify` — quality gates including ArchUnit, plus sensitive-data
+  and secret scans. Finish `SECURITY.md`, confirm every stage has a `/hand-off` entry in
+  `docs/workflow-tracker.md` citing its actual artifact, then `/grade`.
 
 ## Grade yourself
 
@@ -95,30 +106,27 @@ that gate exists to catch is *accepting a fix unread because you already believe
 /grade
 ```
 
-or directly:
-
-```bash
-bash .claude/hooks/lab-grader.sh . --run-id <your-session-id> --format both
-```
-
-Deterministic — the same journey file always produces the same score. Writes
-`.claude/journey/<run-id>.grade.json`.
+Deterministic — the same journey file always produces the same score against
+`.claude/rubrics/finish-the-refund.rubric.yaml`. Writes `.claude/journey/<session_id>-grade.json`.
 
 ## Ground rules
 
-- No remediation without its security test failing first.
-- Only V1 and V2 get fixed this pass (`.claude/lab.json` `targets`) — V3 and the hygiene
-  backlog stay `Open`, not silently resolved, even if you notice something else worth fixing.
+- No remediation without its test failing first.
+- Only F1 and F2 get fixed this pass (`.claude/lab.json` targets), plus building the online
+  refund path. F8 gets fixed too, because the build won't go green otherwise. Everything else
+  (F3, F4, F6, F7, F9, F10) stays `Open`, not silently resolved — and **F5 stays registered and
+  escalated**, not defaulted, which is a different thing from ordinary backlog.
 - `docs/FACILITATOR_KEY.md` is the answer key. Nothing currently blocks you from opening it
-  early — that's on your own discipline, not a hook. Reading it before you've registered
-  your own findings just means you're grading your own homework.
+  early — that's on your own discipline, not a hook. Reading it before you've registered your
+  own findings just means you're grading your own homework.
 - Coverage as evidence, not a target: the optional bonus (`mvn verify`, then open
-  `target/site/jacoco/index.html`) is for discussing which authorization branches are
-  proven versus the unverified backlog — no percentage to chase, no new code.
+  `target/site/jacoco/index.html`) is for discussing which refund branches are proven versus the
+  unverified backlog — no percentage to chase, no new code.
 
 ## See also
 
-- [`AGENTS.md`](./AGENTS.md) — canonical rule, subagent, and command reference
+- [`AGENTS.md`](./AGENTS.md) — canonical rule, subagent, command, and hook reference
 - [`README.md`](./README.md) — architecture note, prerequisites, generated artifacts
 - [`docs/FACILITATOR_KEY.md`](./docs/FACILITATOR_KEY.md) — facilitator answer key (not for participants)
 - [`exercises/`](./exercises/) — per-stage instructions, exact prompts, and a predict-before-you-look hypothesis exercise
+- [`specs/refunds-s2i-phase1.spec.md`](./specs/refunds-s2i-phase1.spec.md) — the spec this lab is built against

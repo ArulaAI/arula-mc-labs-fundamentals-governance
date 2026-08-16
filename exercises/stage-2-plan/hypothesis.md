@@ -1,21 +1,19 @@
 # Stage 2 — Hypothesis
 
-Before invoking `planner`:
+Before reading `planner`'s output:
 
-**Predict:** for your highest-severity finding, what do you think the *smallest possible*
-fix looks like — one sentence? Write it down, then compare it against what `planner`
-actually proposes.
+**Predict:** will the plan correctly leave out F3–F10, or will it drift into "helpfully"
+including a step for one of them (e.g. "also fix the missing correlation ID while we're here")?
 
 ## My prediction
 
-<!-- One sentence. -->
+<!-- Your guess, and why. -->
 
 ## Confidence
 
 <!-- Low / Medium / High -->
 
-## After planner runs
+## After review
 
-Did `planner`'s step match your prediction, propose something smaller, or something you
-hadn't considered? Note any gap — it's useful signal for how well you understood the
-finding in Stage 1.
+Did the plan stay in scope? If it didn't, what happened when you caught it — did you edit the
+plan, or re-run `planner` with a tighter prompt?

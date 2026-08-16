@@ -1,36 +1,31 @@
-# Stage 6 — Governance
+# Stage 6 — Close
 
-**Goal:** Close the loop. Produce a complete, self-contained audit trail that a reviewer
-who wasn't in the room could use to trust this session's outcome without replaying it.
+**Goal:** evidence, audit trail, grade. Nothing is done until someone who wasn't in the room can
+verify it from the artifacts alone.
 
 ## Steps
 
-1. Confirm `docs/workflow-tracker.md` has a hand-off entry for every prior stage (0–5).
-   If any are missing or thin, backfill them now from what you actually did — do not
-   fabricate detail you don't have; if you're unsure what happened, say so.
-2. Write `SECURITY.md` using its template: findings identified (from `RISK_REGISTER.md`),
-   findings remediated (from `FIXES.md`), findings deliberately left open, governance
-   evidence (journey log path, quality-gate results, review counts), and a pointer to
-   `docs/secure-features-guide.md`.
-3. Run the grader:
-   ```bash
-   bash .claude/hooks/lab-grader.sh . --run-id <your-session-id> --format both
-   ```
-4. Review your score against `.claude/fundamentals.rubric.yaml`. If a criterion failed, decide whether
-   it's a real gap (go fix it) or a grading artifact worth noting — either way, don't just
-   accept a low score silently.
+1. Run `mvn verify` — confirm it's fully green: ArchUnit, the compile/test suite, JaCoCo report
+   generated.
+2. Update `SECURITY.md`: F1, F2, F8 as Security Controls (cite the fix and its `pr-reviewer`
+   verdict); F3, F4, F6, F7, F9, F10 as Known Risks; **F5 explicitly marked escalated, not
+   defaulted** — its own row, not folded into the others.
+3. Confirm `docs/workflow-tracker.md` has a `/hand-off` entry for every stage (0 through 6),
+   each one citing the specific artifact filename that stage produced — not a repeated
+   template.
+4. Run `/grade`. Read the per-criterion breakdown, not just the overall score — a passing grade
+   with a failed content check on F5 is not actually a pass of the lab's central lesson.
+5. Recap as a group: direct-prompt comprehension vs. the fresh-context review loop; two traced
+   fixes plus one mechanically-caught layering fix; a documented backlog including one gap that
+   was escalated rather than silently defaulted.
 
 ## Acceptance criteria
 
-- [ ] `docs/workflow-tracker.md` covers all 7 stages with concrete hand-off entries
-- [ ] `SECURITY.md` is complete and internally consistent with `RISK_REGISTER.md`/`FIXES.md`
-- [ ] The grader has been run and produced a `.claude/journey/<run-id>.grade.json`
-- [ ] Every backlog finding is still `Open` in `RISK_REGISTER.md` — nothing was silently
-      fixed or silently dropped along the way
+- [ ] `mvn verify` fully green
+- [ ] `SECURITY.md` complete, F5 explicitly marked escalated
+- [ ] `docs/workflow-tracker.md` has all 7 stage entries, each citing a real artifact
+- [ ] `/grade` run, breakdown reviewed (not just the headline percentage)
 
-## What "done" looks like for the whole lab
+## Hand-off
 
-Someone with no memory of this session should be able to read `RISK_REGISTER.md`,
-`FIXES.md`, `SECURITY.md`, and `docs/workflow-tracker.md`, in that order, and reconstruct
-exactly what was found, what was fixed, what was verified, and what remains open — without
-needing to ask you anything.
+`/hand-off` — cite `SECURITY.md` and the `/grade` output as this stage's artifacts.
