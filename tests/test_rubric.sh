@@ -48,6 +48,7 @@ check(len(criteria) > 0, "at least one criterion")
 known_prefixes = (
     "event_exists:", "event_contains:", "event_count_gte:", "secret_scan_clean",
     "file_contains:", "file_contains_all:", "file_secret_scan_clean:",
+    "file_row_contains_all:", "file_table_rows_gte:",
 )
 ids_seen = set()
 for c in criteria:

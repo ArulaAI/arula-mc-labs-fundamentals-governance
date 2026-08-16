@@ -96,8 +96,15 @@ that's a bonus, not an expectation.
 - Exactly one `RefundRecord` exists for that `idempotencyKey` after two identical requests.
 
 Both slices must be **red** before any Stage 4 fix, and **green** immediately after their
-corresponding slice is remediated. The pre-existing `ArchitectureIT` failure (F8) is a third,
-separate red at this checkpoint — three reds total, not two, until F8 is also addressed.
+corresponding slice is remediated. `ArchitectureIT` (F8) is *also* red at this checkpoint and
+has been since a fresh clone — but a single `mvn verify` invocation will only ever **report
+two** failures here, not three: Maven halts at the first failing phase (`test`/surefire), so it
+never reaches the later `verify`/failsafe phase where `ArchitectureIT` lives once the two new
+unit tests are also red. This is a real, confirmed Maven behavior, not a lab bug — brief
+facilitators on it explicitly, since "why does it only show two, I was told three" is exactly
+the kind of thing that reads as unpreparedness live if nobody's ready for the question. To see
+F8's failure directly at this checkpoint without waiting for Stage 4:
+`mvn verify -Dtest=ArchitectureIT -DfailIfNoTests=false -Dsurefire.skip=true`.
 
 ## What's realistic in Stage 1
 
@@ -133,15 +140,15 @@ code anywhere? Check both the success log line and the catch block separately."*
 
 ## Expected green/red state at each checkpoint
 
-| Checkpoint | `BaselineTest` | `ArchitectureIT` (F8) | Slice 1 (F1) | Slice 2 (F2) | Notes |
-|---|---|---|---|---|---|
-| Fresh clone | green (`mvn test`) | **red** (`mvn verify` only) | doesn't exist yet | doesn't exist yet | `mvn test` is green; `mvn verify` fails only on ArchUnit |
-| End of Stage 2 | green | red | doesn't exist yet | doesn't exist yet | Plan written, not executed |
-| End of Stage 3 | green | red | **red** | **red** | Three reds total at this checkpoint — see note above |
-| Mid Stage 4 (after F1 fix) | green | red | **green** | red | F2 and F8 not yet touched |
-| Mid Stage 4 (after F2 fix) | green | red | green | **green** | F8 not yet touched |
-| End of Stage 4 (F8 fixed, online path built) | green | **green** | green | green | `mvn verify` fully green |
-| End of Stage 6 | green | green | green | green | Gates reviewed, `SECURITY.md` complete |
+| Checkpoint | `BaselineTest` | `ArchitectureIT` (F8) — true state | `ArchitectureIT` — reported by a single `mvn verify` | Slice 1 (F1) | Slice 2 (F2) | Notes |
+|---|---|---|---|---|---|---|
+| Fresh clone | green (`mvn test`) | **red** | **red** | doesn't exist yet | doesn't exist yet | `mvn test` is green; `mvn verify` fails only on ArchUnit — nothing earlier is red yet, so it's reached and reported |
+| End of Stage 2 | green | red | red | doesn't exist yet | doesn't exist yet | Plan written, not executed |
+| End of Stage 3 | green | **red (unchanged)** | **not reached — verify reports 2, not 3** | **red** | **red** | F8 is still genuinely red; Maven just never gets there in one run once the two new slices are also red. See the note above the checkpoint table for the isolating command. |
+| Mid Stage 4 (after F1 fix) | green | red | **not reached — F2's slice is still surefire-red** | **green** | red | F2 and F8 not yet touched; verify still stops at surefire, same phase-ordering reason as Stage 3 |
+| Mid Stage 4 (after F2 fix) | green | red | red | green | **green** | Surefire is fully green now, so `mvn verify` finally reaches failsafe and reports F8 alone |
+| End of Stage 4 (F8 fixed, online path built) | green | **green** | green | green | green | `mvn verify` fully green |
+| End of Stage 6 | green | green | green | green | green | Gates reviewed, `SECURITY.md` complete |
 
 A participant whose `BaselineTest` ever turns red as a side effect of a fix has broken scope —
 it only exercises benign, already-correct behavior and should never be touched.

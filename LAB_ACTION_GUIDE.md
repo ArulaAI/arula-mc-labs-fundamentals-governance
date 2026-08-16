@@ -61,8 +61,12 @@ rushing the fresh-context review step.
 
 Tests assert the **intended/secure** behavior, so they **fail before remediation** — that
 failure is the evidence the gap is real. Do not write tests that lock in current unsafe or
-incomplete behavior. At the Stage 3 checkpoint, expect three reds: the two new slices (F1, F2)
-plus the pre-existing `ArchitectureIT` failure (F8) — everything else stays green.
+incomplete behavior. At the Stage 3 checkpoint, `mvn test` shows exactly two new reds (F1, F2)
+and `mvn verify` reports the same two — not three. `ArchitectureIT` (F8) is still genuinely red
+underneath (it has been since a fresh clone), but Maven's default phase ordering means a single
+`mvn verify` stops at the first failing phase and never re-reaches it once the two new tests are
+also red. That's expected — see `exercises/stage-3-failing-tests/instructions.md` for how to
+see F8's failure directly if you want to confirm it's still there.
 
 ## How the stages work
 
