@@ -18,15 +18,16 @@ code.
    `BaselineTest`, stays green.
 3. Run `mvn verify`. Confirm it fails, and confirm it reports **exactly two** failures — not
    three. This is not a discrepancy to chase down: Maven stops at the first failing phase
-   (`test`/surefire), so a single `mvn verify` invocation never reaches the later
+   (`test`/surefire), so a plain `mvn verify` invocation never reaches the later
    `verify`/failsafe phase where `ArchitectureIT` (F8) lives once earlier tests are red. F8's
    red is real and unchanged — it's just not re-reported in this particular run. If you want to
-   see it directly at this checkpoint, run
-   `mvn verify -Dtest=ArchitectureIT -DfailIfNoTests=false -Dsurefire.skip=true` (skips the two
-   known-red unit tests, runs only the ArchUnit check) — or just trust that it's still there,
-   since nothing you did this stage touched it. If you see a failure count other than two, stop
-   and check with your facilitator before continuing — see `docs/FACILITATOR_KEY.md`'s
-   checkpoint table (facilitators only).
+   see all three together, run `mvn verify -Dmaven.test.failure.ignore=true` — this tells Maven
+   not to halt on a test failure, so it continues on to failsafe and reports `ArchitectureIT`
+   too. One catch: the final line will say `BUILD SUCCESS` even though three things failed —
+   that's what "ignore" means to Maven, read the `[ERROR]` blocks above it, not the last line.
+   If you see a failure count other than two on a plain `mvn verify`, stop and check with your
+   facilitator before continuing — see `docs/FACILITATOR_KEY.md`'s checkpoint table
+   (facilitators only).
 
 ## Acceptance criteria
 

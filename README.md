@@ -82,11 +82,14 @@ business rule (`REFUND_EXPIRY`'s window) that the correct move is to escalate, n
 /grade
 ```
 
-Runs the plugin's `lab-grader` skill against `.claude/rubrics/finish-the-refund.rubric.yaml` (22
-weighted criteria, deterministic — the same journey file always produces the same score).
-Content checks (not just existence checks) are real here: registering a finding with a
-placeholder instead of the actual affected file, or pasting one hand-off template seven times,
-will not score.
+Runs the plugin's `lab-grader` skill against `.claude/rubrics/finish-the-refund.rubric.yaml`
+(deterministic — the same journey file always produces the same score; see the rubric's own
+header comment for the exact criteria count, since it changes as the rubric is hardened and a
+number here would just go stale). Content checks (not just existence checks) are real here:
+registering a finding with a placeholder instead of the actual affected file, or pasting one
+hand-off template seven times, will not score by themselves — though see
+`docs/FACILITATOR_KEY.md`'s mandatory Stage 1→2 spot-check for the one gap the rubric cannot
+close on its own.
 
 ## Architecture note
 

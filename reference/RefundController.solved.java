@@ -34,12 +34,21 @@ public class RefundController {
 
     @PostMapping("/refunds/offline")
     public ResponseEntity<RefundDecision> refundOffline(@RequestBody RefundRequest request) {
-        return ResponseEntity.ok(refundService.processOfflineRefund(request));
+        return toResponse(refundService.processOfflineRefund(request));
     }
 
     @PostMapping("/refunds/online")
     public ResponseEntity<RefundDecision> refundOnline(@RequestBody RefundRequest request) {
-        return ResponseEntity.ok(refundService.processOnlineRefund(request));
+        return toResponse(refundService.processOnlineRefund(request));
+    }
+
+    /** Maps Declined -> 409, same as the seeded starting controller (this is infrastructure
+     * already present pre-fix, not something F2's remediation needs to add). */
+    private ResponseEntity<RefundDecision> toResponse(RefundDecision decision) {
+        if (decision instanceof RefundDecision.Declined) {
+            return ResponseEntity.status(409).body(decision);
+        }
+        return ResponseEntity.ok(decision);
     }
 
     /** F3: still registered, unchanged -- this endpoint answering at all remains the finding. */

@@ -16,11 +16,24 @@
 # direct testing). The per-finding and F5 criteria below now use file_row_contains_all (all
 # keywords must co-occur on ONE line, not just anywhere in the file) paired with
 # risk-register-ten-rows (requires the register to actually look like a table with real rows,
-# not one crammed line). This raises the bar substantially -- a gamer now needs something that
-# looks like ten distinct, real register rows, not one line of keywords -- but it is still not
-# a claim of being unbeatable. A sufficiently motivated participant could still write ten fake
-# rows without doing real analysis; the facilitator spot-check remains the actual backstop for
-# that, same as it always was.
+# not one crammed line). This defeats that specific exploit -- confirmed by re-running it, it
+# now scores well below the pass threshold.
+#
+# Third known limitation, found on the very next adversarial pass and NOT closeable by this
+# DSL, stated plainly rather than papered over with another regex: a fabricated-but-correctly-
+# shaped 11-row table, built from AGENTS.md's own F1-F10 table (which participants correctly
+# have access to -- naming the findings is the teaching, not a secret), still scores 100% with
+# zero real code analysis. Confirmed by direct testing, assembled in a few minutes. This is not
+# a bug to chase with more content-matching -- the correct answer looks identical whether a
+# participant found it themselves or copied it, and no keyword/row/table check can tell those
+# apart. A journey-log check strong enough to tell them apart (e.g. requiring evidence of a
+# Read tool call against the cited file) would depend on hook-data-delivery behavior that has
+# not been independently confirmed working end-to-end -- shipping a *required, scored* check on
+# top of unverified infrastructure risks silently failing legitimate participants, which is
+# worse than the gap it would close. The actual control for this is
+# docs/FACILITATOR_KEY.md's mandatory Stage 1->2 spot-check (3 rows, ask the group to show you
+# the code) -- a two-minute human check that closes exactly the gap this rubric structurally
+# cannot. Treat that section as load-bearing, not optional.
 lab: 1
 title: "Finish the Refund -- Foundations, Governance and the Five Failure Modes"
 pass_threshold: 70
