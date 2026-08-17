@@ -13,7 +13,7 @@ deleted, and not silently fixed later without an explicit decision to do so (see
 |---|---|---|---|---|---|---|
 | | | | | | | |
 
-<!-- Add one row per finding, all fourteen. Expect roughly 2 found unaided, 9-10 surfaced when
+<!-- Add one row per finding, all sixteen. Expect roughly 2 found unaided, 11-12 surfaced when
      you prompt Claude Code (especially when you ask it to compare the code against
      specs/refunds-s2i-phase1.spec.md rule by rule), and 2-3 decoys correctly rejected -- see
      docs/FACILITATOR_KEY.md for the realistic yield if you want to check your group's pace

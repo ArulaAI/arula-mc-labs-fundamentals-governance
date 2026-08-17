@@ -1,6 +1,6 @@
 # Stage 1 — Comprehend and register
 
-**Goal:** a registered, prioritized `RISK_REGISTER.md` with all fourteen findings — not just the ones
+**Goal:** a registered, prioritized `RISK_REGISTER.md` with all sixteen findings — not just the ones
 you plan to fix.
 
 ## Steps
@@ -15,7 +15,8 @@ you plan to fix.
 3. **Then** direct-prompt Claude Code:
    ```text
    Review these files together: RefundController.java, RefundService.java,
-   RefundPrivilege.java, PreRiskAssessmentClient.java, RefundRecordDao.java.
+   RefundPrivilege.java, PreRiskAssessmentClient.java, RefundRecordDao.java,
+   RefundHealthIndicator.java.
    For each file return a table: file | responsibility | key dependencies | hidden side effects.
    Do not suggest fixes. Do not create the risk register yet.
    ```
@@ -30,7 +31,7 @@ you plan to fix.
 
 ## Acceptance criteria
 
-- [ ] All fourteen findings registered, each citing a real affected file
+- [ ] All sixteen findings registered, each citing a real affected file
 - [ ] At least 2 findings found before any AI involvement
 - [ ] At least 2 decoys explicitly rejected with a stated reason
 - [ ] F5's status (found or not) is explicit, not silently skipped

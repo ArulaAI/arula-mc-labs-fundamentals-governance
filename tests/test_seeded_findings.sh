@@ -4,8 +4,9 @@
 # silently removes a finding this lab depends on (e.g. someone adds an idempotency check while
 # touching RefundService for an unrelated reason, and F2 stops reproducing).
 #
-# Covers the fourteen seeded findings F1-F14. Some findings are seeded as wrong code and are
-# asserted present; others (F2, F12, F13, F14) are seeded by OMISSION and are asserted absent.
+# Covers the sixteen seeded findings F1-F16. Some findings are seeded as wrong code and are
+# asserted present; others (F2, F12, F13, F14, F15, F16) are seeded by OMISSION and are asserted
+# absent.
 # An absence check that starts failing is not automatically a bug in this script -- it means
 # someone implemented the rule, which for a backlog finding is an undiscussed scope change.
 set -euo pipefail
@@ -98,6 +99,16 @@ grep -q "Health.up()" "$HEALTH" \
 ! offline_body | grep -qE '"VOIDED"|isVoided|rejectVoided' \
     && check 0 "F14: processOfflineRefund does not reject a voided target transaction" \
     || check 1 "F14: voided-target rejection has appeared in processOfflineRefund -- registered finding, not a fix target"
+
+# F15: no positive-input validation (amount > 0, currency well-formed) anywhere in the offline path
+! offline_body | grep -qE "amountMinor\(\)\s*[<>]|amountMinor\(\)\s*<=|\.isBlank\(\)|@Positive|@NotBlank|IllegalArgumentException.*[Aa]mount|IllegalArgumentException.*[Cc]urrency" \
+    && check 0 "F15: processOfflineRefund performs no positive-input validation on amount/currency" \
+    || check 1 "F15: input validation has appeared in processOfflineRefund -- registered finding, not a fix target"
+
+# F16: ENABLE_REFUND_REQUESTS / SUPPORT_EXTENDED_REFUNDS declared but never read anywhere in src/main
+! grep -rqE "RefundPrivilege\.ENABLE_REFUND_REQUESTS|RefundPrivilege\.SUPPORT_EXTENDED_REFUNDS" "$REPO_ROOT/src/main/java" \
+    && check 0 "F16: ENABLE_REFUND_REQUESTS/SUPPORT_EXTENDED_REFUNDS are declared but never referenced by any check" \
+    || check 1 "F16: one of the dead-weight privileges is now referenced by a check -- registered finding, not a fix target"
 
 echo "seeded findings tests: $pass passed, $fail failed"
 [ "$fail" -eq 0 ]

@@ -35,7 +35,7 @@ facilitator-only answer key in [docs/FACILITATOR_KEY.md](docs/FACILITATOR_KEY.md
 `.claude/lab.json`: `{"id":"finish-the-refund","targets":["F1","F2"],"rubric":".claude/rubrics/finish-the-refund.rubric.yaml","minutes":120}`.
 **Only F1 and F2 are remediation targets this pass, plus building `processOnlineRefund()`.**
 F8 gets resolved too, but mechanically — the build itself won't go green until it's fixed
-(see Seeded findings, below). F3–F7 and F9–F14 are registered/backlog, not remediation targets.
+(see Seeded findings, below). F3–F7 and F9–F16 are registered/backlog, not remediation targets.
 
 ## Rules that apply to every change in this repo (from the `workbench` plugin)
 
@@ -115,10 +115,20 @@ anything beyond F1/F2/F8 ahead of time or point findings out unprompted.
 | F12 | No `REFUNDS` privilege gate on the base refund path — a merchant with no privileges still gets a refund processed. Distinct from F6, which is specifically the `EXCESSIVE_REFUNDS` gate | Missing privilege gate | `RefundService.java` | Backlog |
 | F13 | No currency-match validation against the original transaction | Incorrectly solving the right problem | `RefundService.java` | Backlog |
 | F14 | No voided-target rejection — a VOIDED transaction can still be refunded | Incorrectly solving the right problem | `RefundService.java` | Backlog |
+| F15 | No positive-input validation at all — a negative amount or a malformed currency is accepted and processed | Incorrectly solving the right problem | `RefundService.java` | Backlog |
+| F16 | `ENABLE_REFUND_REQUESTS` and `SUPPORT_EXTENDED_REFUNDS` are declared in `RefundPrivilege` but never read anywhere — dead-weight privileges, not backed by any check | — | `RefundPrivilege.java` | Backlog |
 
 A live trap in the quality gates, not the code: the unknown-dependency check is designed to
 catch a hallucinated Maven coordinate (e.g. a "PAN masking library") if one is proposed during
 Stage 4 remediation — the concrete version of Failure Mode 1 (Hallucination).
+
+**A spec ambiguity worth naming, not silently resolved either way:** the spec pack's own "Out of
+scope (Phase 1)" list states "Excessive refund is Phase 1.1" — yet its Business Rules, Error
+Scenarios and Acceptance Criteria sections all describe `EXCESSIVE_REFUNDS` gating (F6) as active,
+testable Phase 1 behavior. This document does not resolve which reading is correct; F6 is kept as
+a registered finding because the spec pack's own ACs describe it as testable, but this is exactly
+the kind of spec contradiction the lab itself teaches you to escalate rather than default on — see
+`docs/SOURCE_TRACEABILITY.md`.
 
 ## Fidelity note
 

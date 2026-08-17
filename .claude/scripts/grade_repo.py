@@ -636,10 +636,11 @@ def self_test(real_root: str, rubric_path: str) -> int:
             4: "PreRiskAssessmentClient", 5: "RefundPrivilege", 6: "RefundService",
             7: "RefundController", 8: "RefundController", 9: "RefundService",
             10: "RefundController", 11: "RefundHealthIndicator", 12: "RefundService",
-            13: "RefundService", 14: "RefundService",
+            13: "RefundService", 14: "RefundService", 15: "RefundService",
+            16: "RefundPrivilege",
         }
         rows = []
-        for i in range(1, 15):
+        for i in range(1, 17):
             extra = " escalated to the product owner" if i == 5 else ""
             rows.append(f"| F{i} | finding {i}{extra} | High | mode | `{files[i]}.java` | impact | Open |")
         _write(tmp, "RISK_REGISTER.md", header + "\n".join(rows) + "\n")
@@ -695,7 +696,7 @@ def self_test(real_root: str, rubric_path: str) -> int:
     with tempfile.TemporaryDirectory() as tmp:
         populated(tmp)
         crammed = ("| ID | Name |\n|---|---|\n"
-                   "| F1 F2 F3 F4 F5 F6 F7 F8 F9 F10 F11 F12 F13 F14 escalat "
+                   "| F1 F2 F3 F4 F5 F6 F7 F8 F9 F10 F11 F12 F13 F14 F15 F16 escalat "
                    "RefundService RefundController PreRiskAssessmentClient RefundPrivilege "
                    "RefundHealthIndicator | everything |\n")
         _write(tmp, "RISK_REGISTER.md", crammed)

@@ -15,7 +15,7 @@
 # keyword the rubric looks for used to score 110/110 with zero real content (confirmed by
 # direct testing). The per-finding criteria below now use file_row_contains_all (all keywords
 # must co-occur on ONE line, not just anywhere in the file) paired with
-# risk-register-fourteen-rows (the register must actually look like a table with real,
+# risk-register-sixteen-rows (the register must actually look like a table with real,
 # non-blank rows, not one crammed line). This defeats that specific exploit -- confirmed by
 # re-running it in grade_repo.py's --self-test, where it scores well below the pass threshold.
 # Stated precisely so the comment does not claim more than it delivers: this defeats CRAMMING,
@@ -23,7 +23,7 @@
 #
 # Third known limitation, found on the very next adversarial pass and NOT closeable by this
 # DSL, stated plainly rather than papered over with another regex: a fabricated-but-correctly-
-# shaped 15-row table, built from AGENTS.md's own F1-F14 table (which participants correctly
+# shaped 17-row table, built from AGENTS.md's own F1-F16 table (which participants correctly
 # have access to -- naming the findings is the teaching, not a secret), still scores 100% with
 # zero real code analysis. Confirmed by direct testing, assembled in a few minutes. This is not
 # a bug to chase with more content-matching -- the correct answer looks identical whether a
@@ -51,7 +51,7 @@
 # deterministic score. That script's `--self-test` grades synthetic empty / populated /
 # crammed / F5-defaulted repos and asserts this rubric actually discriminates between them.
 #
-# Findings F1-F14 are seeded. F1/F2 are the remediation targets, F8 is forced by the build,
+# Findings F1-F16 are seeded. F1/F2 are the remediation targets, F8 is forced by the build,
 # F5 is register-and-escalate, and the rest are backlog.
 lab: 1
 title: "Finish the Refund -- Foundations, Governance and the Five Failure Modes"
@@ -64,15 +64,15 @@ criteria:
     check: "event_exists:session-start"
 
   # --- Structural: the register must actually be shaped like a table with real rows, not one
-  # crammed line. A completed RISK_REGISTER.md is a header row + 14 data rows = 15
+  # crammed line. A completed RISK_REGISTER.md is a header row + 16 data rows = 17
   # non-separator, non-blank table rows -- this is what directly defeats the single-line-cram
   # exploit. Blank template rows do not count toward the total. ---
-  - id: risk-register-fourteen-rows
-    description: "RISK_REGISTER.md is a real table with a header plus all fourteen finding rows, not a crammed line"
+  - id: risk-register-sixteen-rows
+    description: "RISK_REGISTER.md is a real table with a header plus all sixteen finding rows, not a crammed line"
     max_score: 8
-    check: "file_table_rows_gte:RISK_REGISTER.md:15"
+    check: "file_table_rows_gte:RISK_REGISTER.md:17"
 
-  # --- All fourteen findings registered, each with a real file citation, co-occurring on the
+  # --- All sixteen findings registered, each with a real file citation, co-occurring on the
   # SAME row (content check, not just existence -- a placeholder row, or keywords scattered
   # across unrelated lines, must not score) ---
   - id: f1-registered
@@ -131,6 +131,14 @@ criteria:
     description: "F14 (no voided-target rejection) registered, citing the real affected file, on one row"
     max_score: 3
     check: "file_table_row_contains_all:RISK_REGISTER.md:F14,RefundService"
+  - id: f15-registered
+    description: "F15 (no positive-input validation) registered, citing the real affected file, on one row"
+    max_score: 3
+    check: "file_table_row_contains_all:RISK_REGISTER.md:F15,RefundService"
+  - id: f16-registered
+    description: "F16 (dead-weight privileges never enforced) registered, citing the real affected file, on one row"
+    max_score: 3
+    check: "file_table_row_contains_all:RISK_REGISTER.md:F16,RefundPrivilege"
 
   # --- Plan, Critical first ---
   - id: plan-critical-first
@@ -156,9 +164,9 @@ criteria:
 
   # --- Backlog integrity: findings NOT in scope must stay documented, not silently dropped ---
   - id: backlog-intact
-    description: "F3,F4,F6,F7,F9,F10,F12,F13,F14 still listed as backlog in RISK_REGISTER.md -- not fixed, not deleted"
+    description: "F3,F4,F6,F7,F9,F10,F12,F13,F14,F15,F16 still listed as backlog in RISK_REGISTER.md -- not fixed, not deleted"
     max_score: 6
-    check: "all_of:file_contains_all:RISK_REGISTER.md:F3,F4,F6,F7,F9,F10,F12,F13,F14;file_table_rows_gte:RISK_REGISTER.md:15"
+    check: "all_of:file_contains_all:RISK_REGISTER.md:F3,F4,F6,F7,F9,F10,F12,F13,F14,F15,F16;file_table_rows_gte:RISK_REGISTER.md:17"
 
   # --- Look ahead: no code ---
   - id: secure-features-guide

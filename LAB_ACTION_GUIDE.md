@@ -81,7 +81,7 @@ exists to catch is *accepting a fix unread because you already believe it works*
   the same refund twice (two records exist), open the log (authorization code in cleartext).
   Then prompt Claude Code for a file-by-file review — no fixes yet. Then triage what comes
   back: confirm real findings, reject decoys with a stated reason, rank by severity. Fill
-  `RISK_REGISTER.md` yourself, one row per finding, all fourteen, including backlog.
+  `RISK_REGISTER.md` yourself, one row per finding, all sixteen, including backlog.
 - **Stage 2 — Plan.** `planner` turns your register into `docs/plans/plan.md`, Critical first,
   scoped to F1/F2 plus building `processOnlineRefund()`. Review it against the plugin's
   guardrail rules and the spec's own acceptance criteria before moving on. **Facilitator

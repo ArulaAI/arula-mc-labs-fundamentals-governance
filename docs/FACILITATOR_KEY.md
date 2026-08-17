@@ -23,14 +23,37 @@ Stage 1 yield, and the documented Stage-4 fallback prompt.
 | F12 | No `REFUNDS` privilege gate on the base refund path — a merchant with no privileges still gets a refund processed | High | Missing privilege gate | `RefundService.java` | Backlog |
 | F13 | No currency-match validation against the original transaction | Medium | Incorrectly solving the right problem | `RefundService.java` | Backlog |
 | F14 | No voided-target rejection — a VOIDED transaction can still be refunded | High | Incorrectly solving the right problem | `RefundService.java` | Backlog |
+| F15 | No positive-input validation at all — a negative amount or malformed currency is accepted and processed | High | Incorrectly solving the right problem | `RefundService.java` | Backlog |
+| F16 | `ENABLE_REFUND_REQUESTS` and `SUPPORT_EXTENDED_REFUNDS` declared in `RefundPrivilege` but never read anywhere — dead-weight, not backed by any check | Medium (hygiene) | — | `RefundPrivilege.java` | Backlog |
 
 **Only F1 and F2 are remediation targets this pass** (`.claude/lab.json` `targets`), plus
 building `processOnlineRefund()`. **F8 gets resolved too, but mechanically** — `mvn verify`
 genuinely will not go green until it's fixed, so participants don't have to find it by eye; the
 build finds it for them. F5 is registered and escalated, which is a *different* status from the
-plain backlog items (F3, F4, F6, F7 and F9–F14) — a participant who lumps F5 in with ordinary
+plain backlog items (F3, F4, F6, F7 and F9–F16) — a participant who lumps F5 in with ordinary
 backlog, or worse, invents a default window value for it, has failed the lab's central lesson
 even if F1/F2/F8 are all correctly fixed.
+
+**F15 and F16, added on a later hardening pass, not in the original build.** Both surfaced from
+a direct line-by-line read of the raw PGS spec pack and Mastercard's own "Internal standards"
+document, not from a prior review round. F15 (missing positive-input validation) matters more
+than its "hygiene"-adjacent framing suggests — Mastercard's Eng Std 5.1–5.3 names positive input
+validation a non-negotiable, the same tier as F1/F2, not an optional nicety; it's kept as
+backlog rather than a third remediation target only to avoid destabilizing the Stage 3 "exactly
+two reds" checkpoint invariant this close to a live cohort run, not because it's less real. F16
+is lower-stakes: two privileges that exist in name only. If a participant asks "what does
+`ENABLE_REFUND_REQUESTS` actually gate," the honest answer is nothing — point them at F16 rather
+than let them assume it's silently handled.
+
+**A spec ambiguity worth surfacing to the group if it comes up, not resolved silently either
+way:** the spec pack's own "Out of scope (Phase 1)" list states "Excessive refund is Phase 1.1"
+— yet the same document's Business Rules, Error Scenarios and Acceptance Criteria sections all
+describe `EXCESSIVE_REFUNDS` gating (F6) as active, testable Phase 1 behavior. This key does not
+resolve which reading is correct. F6 stays a registered finding because the spec pack's own ACs
+describe it as testable, but if a sharp participant notices the phasing contradiction and asks
+about it, that is exactly correct instinct — the right answer is "good catch, that's a real
+ambiguity in the source spec, escalate it to Mastercard rather than assume either reading," not
+a reason to mark them wrong for registering F6.
 
 ## Smallest-diff remediation outline
 
@@ -94,10 +117,10 @@ captured amount. If nobody on the team raises it, that's fine — it stays regis
 backlog, same as before. If a participant's build accidentally *does* handle it correctly,
 that's a bonus, not an expectation.
 
-### F12, F13, F14 — spec rules the shipped path simply never implements
+### F12, F13, F14, F15 — spec rules the shipped path simply never implements
 
-These three are seeded by **omission**, not by wrong code, and they are all in
-`RefundService.processOfflineRefund` (inline comments there name each one). All three are
+These four are seeded by **omission**, not by wrong code, and they are all in
+`RefundService.processOfflineRefund` (inline comments there name each one). All four are
 **backlog**: register them, do not fix them, and do not let them expand Stage 4's scope.
 
 | | The rule, from the spec pack | Why it is its own finding |
@@ -105,13 +128,26 @@ These three are seeded by **omission**, not by wrong code, and they are all in
 | F12 | "`REFUNDS` — required for all refunds"; error table: "Missing `REFUNDS` privilege -> Rejected (403)" | Distinct from **F6**. F6 is the `EXCESSIVE_REFUNDS` gate on the above-captured-amount path; F12 is the base gate that should reject *every* refund from a merchant without `REFUNDS`. A group that finds one often assumes it has found the other — worth separating out loud. |
 | F13 | "Currency must equal the original order currency"; error table: "Currency mismatch -> Rejected" | The inbound `paymentCurrency` is written straight to the record and never compared to anything. |
 | F14 | "Voided transactions cannot be refunded"; error table: "Target transaction voided -> Rejected" | Nothing looks up the target transaction's status, so a `VOIDED` record can be refunded. Note the irony worth pointing out: F3's out-of-scope Void endpoint will happily mark a record `VOIDED`, and nothing then stops it being refunded. |
+| F15 | "Amount must be positive and a valid ISO currency" (business rules); Mastercard Eng Std 5.1–5.3, "positive input validation... deny-list is not acceptable" | Distinct from F13 -- F13 is currency *matching the original order*; F15 is amount/currency being *well-formed at all*. A negative amount or a garbage currency string is accepted and processed today. |
 
 **Why these are easier finds than F5, and what that means for the Stage 1 yield.** Each one is
 a line in the spec with no counterpart in the code. Hand Claude Code the spec and ask it to
-compare rule-by-rule against `RefundService` and all three come out reliably. That is exactly
+compare rule-by-rule against `RefundService` and all four come out reliably. That is exactly
 what makes them *good* backlog findings and a *bad* proxy for skill — F5 remains the one that
-requires noticing what the spec does **not** say. If a group registers F12-F14 and misses F5,
-they have done the easy nine-tenths.
+requires noticing what the spec does **not** say. If a group registers F12-F15 and misses F5,
+they have done the easy majority, not the hard part.
+
+### F3's overlooked second half — worth a mention, not a separate finding
+
+`voidRefund()`'s missing-`REFUNDS`-privilege path throws `IllegalStateException`, mapped to 403
+by the controller. Mastercard's own standard states plainly: "business logic failures are not
+exceptions... don't throw exceptions for expected business outcomes." The refund paths get this
+right (`RefundDecision` is a sealed, structured outcome type, never an exception for a declined
+refund) — `voidRefund()` doesn't follow the same pattern. This is folded into F3 rather than
+given its own number: F3's whole point is "this endpoint shouldn't exist," and the reference
+solution deliberately leaves it exactly as seeded rather than polishing code that's registered
+as out-of-scope. Mention it if a sharp group asks why `voidRefund()`'s error handling looks
+different from the refund paths' — don't volunteer it.
 
 ## Exact secure behaviors the Stage 3 tests must assert
 
@@ -199,10 +235,11 @@ the off-convention `*IT` class via `-Dtest=`, never touching failsafe at all —
 ## Mandatory Stage 1→2 spot-check — the rubric cannot substitute for this
 
 `.claude/rubrics/finish-the-refund.rubric.yaml` checks that `RISK_REGISTER.md` looks like a
-real, table-shaped, fourteen-row register citing real filenames, with each finding on its own
-well-formed row (a single line crammed with every keyword now scores 64/130 — below the pass
-threshold — rather than the 122/130 it used to). It still cannot check that a row was
-actually *investigated* rather than copied from this document's own F1–F14 table above (which
+real, table-shaped, sixteen-row register citing real filenames, with each finding on its own
+well-formed row (a single line crammed with every keyword scores 64/136 — below the 70-point
+pass threshold — confirmed in `grade_repo.py --self-test`, re-verified after F15/F16 were
+added). It still cannot check that a row was
+actually *investigated* rather than copied from this document's own F1–F16 table above (which
 participants correctly have access to — `AGENTS.md` states the same table, since naming the
 findings is part of the teaching, not a secret). Confirmed directly: a fabricated-but-correctly-
 shaped register, assembled in a few minutes from `AGENTS.md`'s own content with zero real code
@@ -216,10 +253,10 @@ broken. This is exactly why "the facilitator's live spot-check is the actual bac
 rubric alone" is stated as a cross-lab principle, not lab-specific advice — treat the line below
 as a mandatory action, not optional colour:
 
-**Before a group moves from Stage 1 to Stage 2, pick 3 of their 14 `RISK_REGISTER.md` rows —
-mix a "Fix" target (F1 or F2) with at least one backlog item, and prefer F5 or one of F12-F14 as
+**Before a group moves from Stage 1 to Stage 2, pick 3 of their 16 `RISK_REGISTER.md` rows —
+mix a "Fix" target (F1 or F2) with at least one backlog item, and prefer F5 or one of F12-F15 as
 the third — and ask the group to show you the actual line(s) of code the row cites.** For
-F12-F14 the honest answer is "there is no line, that's the point", so ask instead which line of
+F12-F15 the honest answer is "there is no line, that's the point", so ask instead which line of
 the spec the code fails to honour; a group that found it can point at the spec in seconds. A group that found it themselves can do this in seconds
 and usually wants to, since they're proud of the catch. A group that copied the table cannot do
 this convincingly, and it surfaces immediately, before the group has invested another hour
@@ -273,28 +310,30 @@ exactly that scenario.
 
 ### What neither check closes, stated plainly
 
-A **fabricated** register — fourteen well-formed rows copied out of `AGENTS.md`'s own finding
+A **fabricated** register — sixteen well-formed rows copied out of `AGENTS.md`'s own finding
 table with no code analysis behind them — still scores full marks. That is not fixable with
 more matching, because a correct row looks identical whether it was earned or copied. The
 mandatory Stage 1->2 spot-check above is the control for it. Treat it as load-bearing.
 
 ## What's realistic in Stage 1
 
-We do not expect all fourteen findings found unaided in 25 minutes, and **the 25-minute budget
+We do not expect all sixteen findings found unaided in 25 minutes, and **the 25-minute budget
 does not move** — the yield changes, the clock does not. The honest shape:
 
 - **~2 found with their own eyes**, before Claude Code is involved — submit the same refund
   twice (two records exist), open the log (authorization code in cleartext).
-- **~9-10 surfaced by Claude Code** when prompted for a file-by-file review, and specifically
+- **~11-12 surfaced by Claude Code** when prompted for a file-by-file review, and specifically
   when prompted to compare the code against the spec. This number went up from ~6-7 when
-  F11-F14 were added, and the reason is worth knowing rather than guessing at: F12, F13 and F14
-  are straightforward spec-comparison findings — a rule is stated in
-  `specs/refunds-s2i-phase1.spec.md` and has no counterpart in `RefundService` — so they surface
-  reliably the moment a group hands Claude Code the spec alongside the code. F11 is similar,
-  one look at `RefundHealthIndicator`. None of them need more minutes; they need the right
-  prompt, which the stage's instructions already give. **F5 is the exception and stays the
-  exception** — it is a *silence* in the spec, not a mismatch with it, and no amount of
-  spec-vs-code comparison surfaces it.
+  F11-F14 were added, and again when F15/F16 were added, and the reason is worth knowing rather
+  than guessing at: F12, F13, F14 and F15 are straightforward spec-comparison findings — a rule
+  is stated in `specs/refunds-s2i-phase1.spec.md` (or, for F15, Mastercard's own Eng Std 5.1-5.3)
+  and has no counterpart in `RefundService` — so they surface reliably the moment a group hands
+  Claude Code the spec alongside the code. F11 is similar, one look at `RefundHealthIndicator`;
+  F16 similarly surfaces the moment someone greps for where `ENABLE_REFUND_REQUESTS` or
+  `SUPPORT_EXTENDED_REFUNDS` are actually used and finds nothing. None of them need more minutes;
+  they need the right prompt, which the stage's instructions already give. **F5 is the exception
+  and stays the exception** — it is a *silence* in the spec, not a mismatch with it, and no
+  amount of spec-vs-code comparison surfaces it.
 - **2-3 decoys deliberately surfaced and rejected** — e.g. "the H2 store is in-memory, this
   won't survive a restart" (true, but it's a lab fixture, not a finding), "no rate limiting on
   the refund endpoints" (a real concern, but a different backlog item, not seeded here),

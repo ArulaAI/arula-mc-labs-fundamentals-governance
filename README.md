@@ -49,7 +49,7 @@ companion, per the spec → hypothesis → confidence discipline this lab also p
 | # | Stage | Min | You produce |
 |---|---|---|---|
 | 0 | Context and the five failure modes | 18 | shared understanding, confirmed harness |
-| 1 | Comprehend & Register | 25 | `RISK_REGISTER.md` — every finding you identify, all fourteen |
+| 1 | Comprehend & Register | 25 | `RISK_REGISTER.md` — every finding you identify, all sixteen |
 | 2 | Plan | 12 | `docs/plans/plan.md` — ordered remediation steps (via `planner`) |
 | 3 | Prove it's broken | 15 | two failing test slices, before any fix |
 | 4 | Remediate and build | 35 | F1 + F2 fixed, `processOnlineRefund()` built, `FIXES.md`, fresh-context `pr-reviewer` |
