@@ -24,18 +24,27 @@ facilitator-only answer key in [docs/FACILITATOR_KEY.md](docs/FACILITATOR_KEY.md
 - JDK 17 (Zulu recommended), Maven 3.9+. `~/.m2` should be pre-warmed on lab machines before
   session day.
 
-## Commands (from the `workbench` plugin)
+## Commands
 
-| Command | Purpose |
-|---|---|
-| `/lab` | Reports lab id, remediation targets, rubric, and time budget from `.claude/lab.json` |
-| `/hand-off` | Closes out the current stage, appends to `docs/workflow-tracker.md` |
-| `/grade` | Runs `lab-grader` against `.claude/rubrics/finish-the-refund.rubric.yaml` |
+| Command | Purpose | Source |
+|---|---|---|
+| `/lab` | Reports lab number, title, rubric path, and objectives from `.claude/lab.json` | `workbench` plugin |
+| `/hand-off` | Closes out the current stage, appends to `docs/workflow-tracker.md` in the exact format `grade_repo.py`'s checks expect | this repo's own `.claude/commands/hand-off.md` -- the plugin also ships a `hand-off` command as of 0.2.0, but Claude Code resolves project-local commands first, so this repo's version is what actually runs |
+| `/grade` (plugin) | Do not use for this lab -- see below | `workbench` plugin, but its `lab-grader` doesn't support this rubric's checks |
 
-`.claude/lab.json`: `{"id":"finish-the-refund","targets":["F1","F2"],"rubric":".claude/rubrics/finish-the-refund.rubric.yaml","minutes":120}`.
-**Only F1 and F2 are remediation targets this pass, plus building `processOnlineRefund()`.**
+Grading: run `python3 .claude/scripts/grade_repo.py`, not the plugin's `/grade`. Confirmed
+directly against the plugin's `skills/lab-grader/scripts/grader.py` (0.2.0): it only implements
+`event_exists`/`event_contains`/`event_count_gte`/`secret_scan_clean`, none of which cover this
+rubric's content checks (`file_table_rows_gte`, `file_table_row_contains_all`, `all_of`,
+`seed_intact`, etc.) -- running the plugin's `/grade` would score those criteria 0 regardless of
+what the participant did. `grade_repo.py` reimplements the full check-type set this rubric
+actually uses.
+
+`.claude/lab.json` carries both the plugin's expected fields (`lab`, `title`, `rubric`,
+`journey_session`, `objectives`) and this repo's own (`id`, `targets`, `minutes`) -- see the file
+itself. **Only F1 and F2 are remediation targets this pass, plus building `processOnlineRefund()`.**
 F8 gets resolved too, but mechanically — the build itself won't go green until it's fixed
-(see Seeded findings, below). F3–F7 and F9–F14 are registered/backlog, not remediation targets.
+(see Seeded findings, below). F3–F7 and F9–F16 are registered/backlog, not remediation targets.
 
 ## Rules that apply to every change in this repo (from the `workbench` plugin)
 
@@ -80,12 +89,13 @@ duplicate plugin-provided functionality:
   `.claude/gate-guard.json`'s deny list. This repo denies `reference/**` — the Stage-4 fallback
   folder stays read-only during a live session. The plugin ships no blocking equivalent
   (`quality_gates.py` is reporting-only), so a local copy does not drift out of sync.
-- **Lab grader** (`lab-grader` skill, wired via `/grade`) — against
-  `.claude/rubrics/finish-the-refund.rubric.yaml`; deterministic, same journey file always
-  yields the same score. Fallback: if the `workbench` plugin is not installed, run
-  `python3 .claude/scripts/grade_repo.py` from the repo root for the same deterministic grader
-  logic. See the rubric file's own header comment for a documented limitation: it can verify
-  repo-artifact *content* (via `file_contains*` checks) but cannot yet verify a build's pass/fail
+- **Lab grader** — `python3 .claude/scripts/grade_repo.py` against
+  `.claude/rubrics/finish-the-refund.rubric.yaml`; deterministic, same repo/journey state always
+  yields the same score. This is the real grader, not a fallback: the plugin's own `lab-grader`
+  skill (`/grade`) does not support this rubric's content checks (confirmed against the plugin's
+  `grader.py` directly — see the rubric's own header comment). See the rubric file's own header
+  comment for a documented limitation: it can verify repo-artifact *content* (via `file_contains*`
+  checks) but cannot yet verify a build's pass/fail
   result from the journey log alone — that's the facilitator's live Stage-4 spot-check, not a
   rubric gap to silently paper over.
 - **ArchUnit** (`ArchitectureIT`, in this repo's own test suite, not the plugin) — build-blocking
@@ -115,10 +125,20 @@ anything beyond F1/F2/F8 ahead of time or point findings out unprompted.
 | F12 | No `REFUNDS` privilege gate on the base refund path — a merchant with no privileges still gets a refund processed. Distinct from F6, which is specifically the `EXCESSIVE_REFUNDS` gate | Missing privilege gate | `RefundService.java` | Backlog |
 | F13 | No currency-match validation against the original transaction | Incorrectly solving the right problem | `RefundService.java` | Backlog |
 | F14 | No voided-target rejection — a VOIDED transaction can still be refunded | Incorrectly solving the right problem | `RefundService.java` | Backlog |
+| F15 | No positive-input validation at all — a negative amount or a malformed currency is accepted and processed | Incorrectly solving the right problem | `RefundService.java` | Backlog |
+| F16 | `ENABLE_REFUND_REQUESTS` and `SUPPORT_EXTENDED_REFUNDS` are declared in `RefundPrivilege` but never read anywhere — dead-weight privileges, not backed by any check | — | `RefundPrivilege.java` | Backlog |
 
 A live trap in the quality gates, not the code: the unknown-dependency check is designed to
 catch a hallucinated Maven coordinate (e.g. a "PAN masking library") if one is proposed during
 Stage 4 remediation — the concrete version of Failure Mode 1 (Hallucination).
+
+**A spec ambiguity worth naming, not silently resolved either way:** the spec pack's own "Out of
+scope (Phase 1)" list states "Excessive refund is Phase 1.1" — yet its Business Rules, Error
+Scenarios and Acceptance Criteria sections all describe `EXCESSIVE_REFUNDS` gating (F6) as active,
+testable Phase 1 behavior. This document does not resolve which reading is correct; F6 is kept as
+a registered finding because the spec pack's own ACs describe it as testable, but this is exactly
+the kind of spec contradiction the lab itself teaches you to escalate rather than default on — see
+`docs/SOURCE_TRACEABILITY.md`.
 
 ## Fidelity note
 

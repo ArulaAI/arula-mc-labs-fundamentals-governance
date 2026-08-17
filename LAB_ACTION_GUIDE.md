@@ -15,9 +15,12 @@
    intended, not a broken lab: F8 is caught by the build itself, and you'll fix it in Stage 4.
    If `mvn verify` fails for any other reason, or passes cleanly, flag your facilitator before
    continuing.
-3. **Harness loaded** — run `/lab`. It should report lab id `finish-the-refund`, targets
-   `F1, F2`, and a 120-minute budget, read from `.claude/lab.json`. Then confirm a journey
-   event actually landed in `.claude/journey/` — not just that the command exited 0. `/hand-off`
+3. **Harness loaded** — run `/lab`. Per the plugin's actual `/lab` command (0.2.0), it reads
+   `.claude/lab.json`'s `lab`/`title`/`rubric` fields and prints the rubric's objectives, so
+   expect it to report lab `1`, title "Finish the Refund", and the objective list from
+   `.claude/lab.json` — not literally "F1, F2" (those remain the remediation targets for this
+   lab, just not what `/lab` itself prints). Then confirm a journey event actually landed in
+   `.claude/journey/` — not just that the command exited 0. `/hand-off`
    should also be listed. The `payments-guardrails` and `ai-use-policy` rules (from the
    `workbench` plugin) load automatically for every file — no separate install step beyond the
    plugin install itself.
@@ -26,9 +29,9 @@
 
 | Command | Stage | What it does | Source |
 |---|---|---|---|
-| `/lab` | 0 | Reports lab id, remediation targets, rubric, and time budget from `.claude/lab.json` | `workbench` plugin |
-| `/hand-off` | every stage | Closes out the stage just finished; appends a structured entry to `docs/workflow-tracker.md` | this repo (no plugin equivalent) |
-| `/grade` | 6 | Runs `lab-grader` against `.claude/rubrics/finish-the-refund.rubric.yaml` and reports the grade card | `workbench` plugin |
+| `/lab` | 0 | Reports lab number, title, rubric path, and objectives from `.claude/lab.json` | `workbench` plugin |
+| `/hand-off` | every stage | Closes out the stage just finished; appends a structured entry to `docs/workflow-tracker.md` | this repo's own `.claude/commands/hand-off.md` -- the plugin also ships a `hand-off` command as of 0.2.0, but Claude Code resolves project-local commands first, so this repo's version is what actually runs |
+| `/grade` | 6 | Runs `python3 .claude/scripts/grade_repo.py` (the plugin's own `lab-grader` does not support this rubric's check types -- see the rubric's own header comment) against `.claude/rubrics/finish-the-refund.rubric.yaml` and reports the grade card | this repo's own script |
 
 **This lab is intentionally light on slash commands.** Stages 1 and 3 are direct prompts to
 Claude Code, not wrapped commands — the point here is practicing unassisted comprehension and
@@ -81,7 +84,7 @@ exists to catch is *accepting a fix unread because you already believe it works*
   the same refund twice (two records exist), open the log (authorization code in cleartext).
   Then prompt Claude Code for a file-by-file review — no fixes yet. Then triage what comes
   back: confirm real findings, reject decoys with a stated reason, rank by severity. Fill
-  `RISK_REGISTER.md` yourself, one row per finding, all fourteen, including backlog.
+  `RISK_REGISTER.md` yourself, one row per finding, all sixteen, including backlog.
 - **Stage 2 — Plan.** `planner` turns your register into `docs/plans/plan.md`, Critical first,
   scoped to F1/F2 plus building `processOnlineRefund()`. Review it against the plugin's
   guardrail rules and the spec's own acceptance criteria before moving on. **Facilitator
@@ -109,16 +112,23 @@ exists to catch is *accepting a fix unread because you already believe it works*
   externalisation, deny-by-default validation, `@ControllerAdvice`). No code changes.
 - **Stage 6 — Close.** Run `mvn verify` — quality gates including ArchUnit, plus sensitive-data
   and secret scans. Finish `SECURITY.md`, confirm every stage has a `/hand-off` entry in
-  `docs/workflow-tracker.md` citing its actual artifact, then `/grade`.
+  `docs/workflow-tracker.md` citing its actual artifact, then `python3 .claude/scripts/grade_repo.py`
+  (see "Grade yourself" below for why, not the plugin's own `/grade`).
 
 ## Grade yourself
 
 ```bash
-/grade
+python3 .claude/scripts/grade_repo.py
 ```
 
-Deterministic — the same journey file always produces the same score against
-`.claude/rubrics/finish-the-refund.rubric.yaml`. Writes `.claude/journey/<session_id>-grade.json`.
+**Do not use the plugin's own `/grade` command for this** — as of workbench plugin 0.2.0, its
+`lab-grader` only supports four check types (`event_exists`, `event_contains`, `event_count_gte`,
+`secret_scan_clean`) and does not understand this rubric's content-based checks
+(`file_table_rows_gte`, `file_table_row_contains_all`, `all_of`, `seed_intact`, etc.) — running
+`/grade` against `.claude/rubrics/finish-the-refund.rubric.yaml` will silently score those
+criteria 0 regardless of what you did. `grade_repo.py` is the real, deterministic grader for this
+rubric: the same journey/repo state always produces the same score. Writes
+`.claude/journey/<session_id>-grade.json`.
 
 Fallback: if the `workbench` plugin is not installed, run:
 

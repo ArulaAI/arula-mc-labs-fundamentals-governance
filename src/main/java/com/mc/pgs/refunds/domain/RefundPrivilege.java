@@ -10,11 +10,24 @@ public enum RefundPrivilege {
     REFUNDS,
     /** Allows refunds beyond the captured amount. */
     EXCESSIVE_REFUNDS,
-    /** Enables prior-approval refunds. */
+    /**
+     * Enables prior-approval refunds.
+     *
+     * F16 (RISK_REGISTER.md): declared from the spec pack's privilege table, but nothing in
+     * this service ever reads it -- no code path checks for or branches on
+     * ENABLE_REFUND_REQUESTS. It exists in the enum and nowhere else. Backlog, register it as
+     * dead-weight rather than assume it's silently handled somewhere.
+     */
     ENABLE_REFUND_REQUESTS,
     /** Offline refund behaviour when the merchant opts out of authorization. */
     ENFORCE_REFUNDS_WITHOUT_AUTHORIZATIONS,
-    /** Refunds up to 24 months. */
+    /**
+     * Refunds up to 24 months.
+     *
+     * F16 (RISK_REGISTER.md): same gap as {@link #ENABLE_REFUND_REQUESTS} -- declared, never
+     * enforced. Nothing in this service checks a refund's age against any window tied to this
+     * privilege.
+     */
     SUPPORT_EXTENDED_REFUNDS,
     /**
      * Enforces the allowed refund expiry window.

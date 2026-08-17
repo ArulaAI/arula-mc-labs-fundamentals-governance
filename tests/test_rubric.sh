@@ -65,9 +65,9 @@ for c in criteria:
     chk = c.get("check", "")
     check(chk.startswith(known_prefixes), f"'{cid}' check '{chk}' uses a known grader.py check type")
 
-# Every finding F1-F14 must be referenced somewhere in the rubric (registered, fixed, or backlog).
+# Every finding F1-F16 must be referenced somewhere in the rubric (registered, fixed, or backlog).
 rubric_text = open("$RUBRIC").read()
-for i in range(1, 15):
+for i in range(1, 17):
     check(re.search(rf"\bF{i}\b", rubric_text) is not None, f"F{i} referenced somewhere in the rubric")
 
 # F5 and the two Stage-4 fixes must be more than a bare existence check.
@@ -83,13 +83,13 @@ check(any("seed_intact:" in c.get("check", "") for c in f5_criteria), "F5 criter
 row_checks = [c for c in criteria if c.get("check", "").startswith("file_table_rows_gte:RISK_REGISTER.md:")]
 check(len(row_checks) == 1, "exactly one RISK_REGISTER.md row-count criterion")
 if row_checks:
-    want_rows = 15  # header + 14 findings
+    want_rows = 17  # header + 16 findings
     got_rows = int(row_checks[0]["check"].rsplit(":", 1)[1])
-    check(got_rows == want_rows, f"RISK_REGISTER.md row-count check is {want_rows} (header + 14 findings), got {got_rows}")
+    check(got_rows == want_rows, f"RISK_REGISTER.md row-count check is {want_rows} (header + 16 findings), got {got_rows}")
 
 # Every finding must have its own registration criterion -- otherwise adding a finding to the
 # docs without adding it to the rubric is silent.
-for i in range(1, 15):
+for i in range(1, 17):
     if i == 8:
         continue  # F8 is scored via f8-registered AND f8-resolved
     check(any(f"f{i}-" in c.get("id", "").lower() for c in criteria), f"F{i} has its own rubric criterion")

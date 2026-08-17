@@ -49,7 +49,7 @@ companion, per the spec → hypothesis → confidence discipline this lab also p
 | # | Stage | Min | You produce |
 |---|---|---|---|
 | 0 | Context and the five failure modes | 18 | shared understanding, confirmed harness |
-| 1 | Comprehend & Register | 25 | `RISK_REGISTER.md` — every finding you identify, all fourteen |
+| 1 | Comprehend & Register | 25 | `RISK_REGISTER.md` — every finding you identify, all sixteen |
 | 2 | Plan | 12 | `docs/plans/plan.md` — ordered remediation steps (via `planner`) |
 | 3 | Prove it's broken | 15 | two failing test slices, before any fix |
 | 4 | Remediate and build | 35 | F1 + F2 fixed, `processOnlineRefund()` built, `FIXES.md`, fresh-context `pr-reviewer` |
@@ -81,40 +81,44 @@ a health check that reports UP without checking anything, and business rules fro
 ## Grading
 
 ```bash
-/grade
-```
-
-Runs the plugin's `lab-grader` skill against `.claude/rubrics/finish-the-refund.rubric.yaml`
-(deterministic — the same journey file always produces the same score; see the rubric's own
-header comment for the exact criteria count, since it changes as the rubric is hardened and a
-number here would just go stale). Content checks (not just existence checks) are real here:
-registering a finding with a placeholder instead of the actual affected file, or pasting one
-hand-off template seven times, will not score by themselves — though see
-`docs/FACILITATOR_KEY.md`'s mandatory Stage 1→2 spot-check for the one gap the rubric cannot
-close on its own.
-
-Fallback: if the `workbench` plugin is not installed, run the same deterministic grader locally:
-
-```bash
 python3 .claude/scripts/grade_repo.py
 ```
 
-This produces the same score against the same rubric file.
+This is the real grader for this lab, not a fallback — the plugin's own `lab-grader` skill
+(`/grade`) only supports `event_exists`/`event_contains`/`event_count_gte`/`secret_scan_clean`
+(confirmed directly against the plugin's `skills/lab-grader/scripts/grader.py` as of 0.2.0), and
+does not implement the content-based checks (`file_contains_all`, `file_table_rows_gte`,
+`file_table_row_contains_all`, `all_of`, `seed_intact`, etc.) this rubric depends on. Running
+`/grade` against `.claude/rubrics/finish-the-refund.rubric.yaml` will score every such criterion
+0 regardless of what the participant did. `grade_repo.py` reimplements that full check-type set
+itself (deterministic — the same repo/journey state always produces the same score; see the
+rubric's own header comment for the exact criteria count, since it changes as the rubric is
+hardened and a number here would just go stale). Content checks (not just existence checks) are
+real: registering a finding with a placeholder instead of the actual affected file, or pasting one
+hand-off template seven times, will not score by themselves — though see
+`docs/FACILITATOR_KEY.md`'s mandatory Stage 1→2 spot-check for the one gap the rubric cannot
+close on its own.
 
 ## Architecture note
 
 This repo depends on the real `workbench` plugin
 ([`ArulaAI/arula-mc-labs-plugin`](https://github.com/ArulaAI/arula-mc-labs-plugin)) for its
 rules, agents, hooks, and most commands. Repo-local components are forbidden only where they
-would duplicate plugin-provided functionality. Only `/hand-off` is repo-local
-(`.claude/commands/hand-off.md`), because the plugin has no equivalent — it ships
-`/journey start|stop|export`, a different concept (session-wide capture, not a per-stage
-narrative hand-off). `.claude/hooks/gate_guard.py` is an explicit, justified exception: the
-plugin ships no blocking equivalent (`quality_gates.py` is reporting-only), so a local copy does
-not drift out of sync.
+would duplicate plugin-provided functionality. `/hand-off` is repo-local
+(`.claude/commands/hand-off.md`) because, as of plugin `0.1.0`, the plugin had no equivalent — it
+shipped only `/journey start|stop|export`, a different concept (session-wide capture, not a
+per-stage narrative hand-off). **As of plugin `0.2.0` the plugin now also ships its own
+`hand-off` command** — this repo's local one still runs (Claude Code resolves project-local
+commands ahead of plugin-provided ones of the same name, silently), and is being kept
+deliberately: the plugin's generic hand-off template does not reliably cite this lab's specific
+artifacts the way this repo's version is built to (see `.claude/commands/hand-off.md`'s own
+comment). `.claude/hooks/gate_guard.py` is an explicit, justified exception: the plugin ships no
+blocking equivalent (`quality_gates.py` is reporting-only), so a local copy does not drift out of
+sync.
 
-Two capabilities this lab needs do not exist in the plugin's `0.1.0`, so both are **implemented
-locally as a stopgap** rather than tracked and waited on:
+Two capabilities this lab needs do not exist in the plugin (checked against `0.1.0` originally,
+re-confirmed against `0.2.0`), so both are **implemented locally as a stopgap** rather than
+tracked and waited on:
 
 - `.claude/hooks/gate_guard.py` — the `PreToolUse` hook described above. Run
   `python3 .claude/hooks/gate_guard.py --self-test` to confirm it still blocks every bypass

@@ -70,6 +70,38 @@ a fixture decision in each case, chosen so the finding is discoverable in a 25-m
 | F12 — no `REFUNDS` privilege gate on the base path | 1 | Spec pack: "`REFUNDS` — required for all refunds", and the error table's "Missing `REFUNDS` privilege -> Rejected (403)". Distinct from F6 |
 | F13 — no currency-match validation | 1 | Spec pack business rules: "Currency must equal the original order currency"; error table: "Currency mismatch -> Rejected" |
 | F14 — no voided-target rejection | 1 | Spec pack business rules: "**Voided transactions cannot be refunded**"; error table: "Target transaction voided -> Rejected" |
+| F15 — no positive-input validation | 1, and `pgs-example-claude-md-for-labs.md` | Spec pack business rules: "amount must be positive and a valid ISO currency"; also stated as a hard non-negotiable in Mastercard's own Eng Std 5.1-5.3 ("positive input validation... deny-lists are not acceptable"), not just this feature's spec |
+| F16 — dead-weight privileges (`ENABLE_REFUND_REQUESTS`, `SUPPORT_EXTENDED_REFUNDS`) | 1 | Both privileges are named in the spec pack's own privilege table; neither is enforced anywhere in this service. Added on a later hardening pass after a direct audit found the enum values had zero usages and zero registered findings pointing at them |
+
+**A source ambiguity, not silently resolved:** the spec pack's "Out of scope (Phase 1)" list
+states "Excessive refund is Phase 1.1" — placing `EXCESSIVE_REFUNDS` gating (F6) explicitly
+*outside* Phase 1. But the same document's Business Rules, Error Scenarios and Acceptance
+Criteria sections all describe that exact gating as active, testable Phase 1 behavior, with its
+own Given/When/Then AC. `pgs-epic-feature-story-examples.md`'s phasing note repeats "Phase 1.1
+excessive refund" independently, so this is not a one-off typo in a single document. F6 is kept
+as a registered finding here because the spec pack's own ACs describe it as testable, not
+because the phasing question has been resolved — it hasn't. This is source material Mastercard
+should be asked to clarify, not something this lab's construction should have silently picked a
+side on.
+
+**Known simplifications, stated plainly rather than silently absent (added on a later hardening
+pass, deliberately not fixed before a live cohort run):**
+- The **response** shape (`RefundDecision`) stays flat (`transactionId`/`amountMinor`/
+  `authorizationCode`), not the spec pack's full nested contract (`order.totalCapturedAmount`,
+  `order.status`, `transaction.authorizationResponse.*`, processed-card blocks). The
+  **request** shape was fully migrated to the real nested contract; the response was not, in the
+  same pass, which is an asymmetry worth being honest about rather than presenting as complete.
+  Not fixed now because changing the wire response shape ripples through every test, exercise
+  and reference solution that consumes it — real risk for a change this close to a cohort
+  session, for a fidelity gain with no functional impact on the lab's teaching goals.
+- **No OpenAPI contract file.** Both `pgs-epic-feature-story-examples.md` and
+  `pgs-example-claude-md-for-labs.md` state "OpenAPI-first: define the contract before
+  implementing" as a standard. This lab uses a markdown spec (`specs/refunds-s2i-phase1.spec.md`)
+  instead. A real gap relative to the stated standard, not something this lab uniquely
+  introduced.
+- **No PITest (mutation testing) in this lab**, despite it being named in Mastercard's own stack
+  and non-negotiables list. Deliberate sequencing, not an oversight: mutation testing is Lab 3's
+  teaching moment in this series, not Lab 1's.
 
 ### Governance and grading infrastructure
 

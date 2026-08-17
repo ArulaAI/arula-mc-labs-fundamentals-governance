@@ -2,7 +2,7 @@
 
 Before you prompt Claude Code for the file-by-file review:
 
-**Predict:** how many of the fourteen findings do you think Claude Code's review will surface versus
+**Predict:** how many of the sixteen findings do you think Claude Code's review will surface versus
 how many you'll have already found by eye or won't find at all?
 
 ## My prediction
