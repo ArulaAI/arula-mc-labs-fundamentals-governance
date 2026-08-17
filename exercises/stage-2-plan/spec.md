@@ -9,4 +9,4 @@
 - Critical severity first
 - Scoped to exactly F1, F2, and the `processOnlineRefund()` build
 - Each step has a target file, a concrete task, and a success criterion
-- No step silently expands into F3–F10 or the out-of-scope Void/settlement work
+- No step silently expands into F3–F14 or the out-of-scope Void/settlement work

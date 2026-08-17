@@ -18,6 +18,6 @@ group actually explains the diff back to you before pointing them here, don't ju
   directly in the controller now delegate to `RefundService.voidRefund(...)`; the controller no
   longer depends on `RefundRecordDao` at all, which is what makes `ArchitectureIT` go green.
 
-F3, F4, F5, F6, F7, F9, F10 are unchanged from the seeded state in this reference -- they stay
+F3, F4, F5, F6, F7, F9, F10, F11, F12, F13, F14 are unchanged from the seeded state in this reference -- they stay
 registered/backlog, exactly as the lab intends. If your `RISK_REGISTER.md` still lists them, that
 is correct, not something to fix.

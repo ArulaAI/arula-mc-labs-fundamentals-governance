@@ -27,18 +27,31 @@ Controls actually implemented and verified this pass — pulled from `FIXES.md`.
 ## Known Risks (Accepted / Open)
 
 Findings registered in `RISK_REGISTER.md` that remain `Open` at the end of this pass: F3, F4,
-F6, F7, F9, F10 (backlog, never in this pass's scope), and **F5 — explicitly escalated, not
-defaulted**, not the same status as the others. F5's row must say so, not just list it as
-another backlog item.
+F6, F7, F9, F10, F11, F12, F13, F14 (backlog, never in this pass's scope), and **F5 —
+explicitly escalated, not defaulted**, not the same status as the others. F5's row must say so,
+not just list it as another backlog item.
+
+Three of those backlog entries are business rules the spec states and the shipped refund path
+never implements, so they are worth stating in their own words rather than as bare ids:
+
+- **F12** — no `REFUNDS` privilege gate on the base refund path, so a merchant holding no
+  privileges still gets a refund processed. Distinct from F6, which is the `EXCESSIVE_REFUNDS`
+  gate on the above-captured-amount path.
+- **F13** — no currency-match validation against the original transaction.
+- **F14** — no voided-target rejection: a `VOIDED` transaction can still be refunded.
+
+**F11** — `RefundHealthIndicator` reports UP on `/actuator/health` without checking anything, so
+the endpoint cannot fail and is not a usable availability signal.
 
 | ID | Risk | Severity | Why it's accepted for now |
 |---|---|---|---|
 | | | | |
 
-<!-- One row per Open RISK_REGISTER.md entry. "Why accepted" states the actual reason (out of
-     this pass's target list per .claude/lab.json, or -- for F5 specifically -- that the spec
-     pack genuinely does not define the REFUND_EXPIRY window and inventing one would be an
-     unauthorised business decision) -- not a placeholder. -->
+<!-- One row per Open RISK_REGISTER.md entry: F3, F4, F5, F6, F7, F9, F10, F11, F12, F13, F14.
+     "Why accepted" states the actual reason (out of this pass's target list per
+     .claude/lab.json, or -- for F5 specifically -- that the spec pack genuinely does not define
+     the REFUND_EXPIRY window and inventing one would be an unauthorised business decision) --
+     not a placeholder. -->
 
 ## Governance evidence
 

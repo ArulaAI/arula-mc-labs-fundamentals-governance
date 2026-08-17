@@ -16,5 +16,5 @@ you think are hiding in the offline path that's already "done" and green.
 
 ## After Stage 1
 
-Was your prediction close? The real number is ten. What surprised you about the gap between
+Was your prediction close? The real number is fourteen. What surprised you about the gap between
 "green build" and "governance-clean"?

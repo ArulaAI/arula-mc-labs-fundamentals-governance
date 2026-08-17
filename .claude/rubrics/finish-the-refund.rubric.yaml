@@ -4,11 +4,55 @@
 # post-tool event only logs {"tool": tool_name} -- it does not capture exit codes or command
 # output. This means the rubric CANNOT mechanically prove "mvn verify went green" or "the
 # quality gate passed" from the journey log alone. Criteria below lean on repo-artifact content
-# checks (file_contains*) wherever a real signal exists, and on journey event checks only for
-# genuinely event-shaped things (a stage ran, a hand-off happened). Anything the DSL can't prove
-# is exactly what the facilitator's live Stage-4 spot-check is for -- see "Grading integrity and
-# facilitator continuity" in MASTERCARD_LABS_STAGE_BREAKDOWN.md. The rubric is a backstop, not
-# the whole control.
+# checks (file_contains*/file_row_contains_all/file_table_rows_gte) wherever a real signal
+# exists, and on journey event checks only for genuinely event-shaped things (a stage ran, a
+# hand-off happened). Anything the DSL can't prove is exactly what the facilitator's live
+# Stage-4 spot-check is for -- see "Grading integrity and facilitator continuity" in
+# MASTERCARD_LABS_STAGE_BREAKDOWN.md. The rubric is a backstop, not the whole control.
+#
+# Second known limitation, found and fixed this pass, not just theorized: a plain
+# file_contains_all check is a whole-file substring search -- a single line crammed with every
+# keyword the rubric looks for used to score 110/110 with zero real content (confirmed by
+# direct testing). The per-finding criteria below now use file_row_contains_all (all keywords
+# must co-occur on ONE line, not just anywhere in the file) paired with
+# risk-register-fourteen-rows (the register must actually look like a table with real,
+# non-blank rows, not one crammed line). This defeats that specific exploit -- confirmed by
+# re-running it in grade_repo.py's --self-test, where it scores well below the pass threshold.
+# Stated precisely so the comment does not claim more than it delivers: this defeats CRAMMING,
+# not FABRICATION. See the third limitation below.
+#
+# Third known limitation, found on the very next adversarial pass and NOT closeable by this
+# DSL, stated plainly rather than papered over with another regex: a fabricated-but-correctly-
+# shaped 15-row table, built from AGENTS.md's own F1-F14 table (which participants correctly
+# have access to -- naming the findings is the teaching, not a secret), still scores 100% with
+# zero real code analysis. Confirmed by direct testing, assembled in a few minutes. This is not
+# a bug to chase with more content-matching -- the correct answer looks identical whether a
+# participant found it themselves or copied it, and no keyword/row/table check can tell those
+# apart. A journey-log check strong enough to tell them apart (e.g. requiring evidence of a
+# Read tool call against the cited file) would depend on hook-data-delivery behavior that has
+# not been independently confirmed working end-to-end -- shipping a *required, scored* check on
+# top of unverified infrastructure risks silently failing legitimate participants, which is
+# worse than the gap it would close. The actual control for this is
+# docs/FACILITATOR_KEY.md's mandatory Stage 1->2 spot-check (3 rows, ask the group to show you
+# the code) -- a two-minute human check that closes exactly the gap this rubric structurally
+# cannot. Treat that section as load-bearing, not optional.
+#
+# What IS newly closeable, and is closed here: the F5 criterion no longer scores on the
+# register row alone. It is an `all_of:` pairing the escalation keyword with `seed_intact:`,
+# which asserts the seeded REFUND_EXPIRY code in RefundPrivilege.java is byte-for-byte
+# unmodified (fixture: .claude/fixtures/f5-refund-expiry.json). A participant who invents a
+# default window AND writes a tidy "escalated" row now scores zero for F5 instead of full
+# marks -- which matters, because inventing that value is precisely the failure this lab is
+# built to catch. This is a real code-state check, not another keyword regex, which is why it
+# is worth adding where more content-matching was not.
+#
+# Grader: `/grade` runs the plugin's lab-grader. If the plugin is not installed, run
+# `python3 .claude/scripts/grade_repo.py` from the repo root -- same rubric, same checks, same
+# deterministic score. That script's `--self-test` grades synthetic empty / populated /
+# crammed / F5-defaulted repos and asserts this rubric actually discriminates between them.
+#
+# Findings F1-F14 are seeded. F1/F2 are the remediation targets, F8 is forced by the build,
+# F5 is register-and-escalate, and the rest are backlog.
 lab: 1
 title: "Finish the Refund -- Foundations, Governance and the Five Failure Modes"
 pass_threshold: 70
@@ -19,48 +63,74 @@ criteria:
     max_score: 5
     check: "event_exists:session-start"
 
-  # --- All ten findings registered, each with a real file citation (content check, not just
-  # existence -- a placeholder row must not score) ---
-  - id: f1-registered
-    description: "F1 registered, citing the real affected file"
-    max_score: 4
-    check: "file_contains_all:RISK_REGISTER.md:F1,RefundService"
-  - id: f2-registered
-    description: "F2 registered, citing the real affected file"
-    max_score: 4
-    check: "file_contains_all:RISK_REGISTER.md:F2,RefundService"
-  - id: f3-registered
-    description: "F3 registered, citing the real affected file"
-    max_score: 4
-    check: "file_contains_all:RISK_REGISTER.md:F3,RefundController"
-  - id: f4-registered
-    description: "F4 registered, citing the real affected file"
-    max_score: 4
-    check: "file_contains_all:RISK_REGISTER.md:F4,PreRiskAssessmentClient"
-  - id: f5-registered-and-escalated
-    description: "F5 registered AND explicitly escalated -- not defaulted"
+  # --- Structural: the register must actually be shaped like a table with real rows, not one
+  # crammed line. A completed RISK_REGISTER.md is a header row + 14 data rows = 15
+  # non-separator, non-blank table rows -- this is what directly defeats the single-line-cram
+  # exploit. Blank template rows do not count toward the total. ---
+  - id: risk-register-fourteen-rows
+    description: "RISK_REGISTER.md is a real table with a header plus all fourteen finding rows, not a crammed line"
     max_score: 8
-    check: "file_contains_all:RISK_REGISTER.md:F5,escalat"
-  - id: f6-registered
-    description: "F6 registered, citing the real affected file"
-    max_score: 3
-    check: "file_contains_all:RISK_REGISTER.md:F6,RefundService"
-  - id: f7-registered
-    description: "F7 registered, citing the real affected file"
-    max_score: 3
-    check: "file_contains_all:RISK_REGISTER.md:F7,RefundController"
-  - id: f8-registered
-    description: "F8 registered, citing the real affected file"
+    check: "file_table_rows_gte:RISK_REGISTER.md:15"
+
+  # --- All fourteen findings registered, each with a real file citation, co-occurring on the
+  # SAME row (content check, not just existence -- a placeholder row, or keywords scattered
+  # across unrelated lines, must not score) ---
+  - id: f1-registered
+    description: "F1 registered, citing the real affected file, on one row"
     max_score: 4
-    check: "file_contains_all:RISK_REGISTER.md:F8,RefundController"
+    check: "file_table_row_contains_all:RISK_REGISTER.md:F1,RefundService"
+  - id: f2-registered
+    description: "F2 registered, citing the real affected file, on one row"
+    max_score: 4
+    check: "file_table_row_contains_all:RISK_REGISTER.md:F2,RefundService"
+  - id: f3-registered
+    description: "F3 registered, citing the real affected file, on one row"
+    max_score: 4
+    check: "file_table_row_contains_all:RISK_REGISTER.md:F3,RefundController"
+  - id: f4-registered
+    description: "F4 registered, citing the real affected file, on one row"
+    max_score: 4
+    check: "file_table_row_contains_all:RISK_REGISTER.md:F4,PreRiskAssessmentClient"
+  - id: f5-registered-and-escalated
+    description: "F5 registered AND explicitly escalated on one row -- AND the seeded REFUND_EXPIRY code left byte-for-byte unmodified, i.e. genuinely not defaulted"
+    max_score: 8
+    check: "all_of:file_table_row_contains_all:RISK_REGISTER.md:F5,escalat;seed_intact:f5-refund-expiry"
+  - id: f6-registered
+    description: "F6 registered, citing the real affected file, on one row"
+    max_score: 3
+    check: "file_table_row_contains_all:RISK_REGISTER.md:F6,RefundService"
+  - id: f7-registered
+    description: "F7 registered, citing the real affected file, on one row"
+    max_score: 3
+    check: "file_table_row_contains_all:RISK_REGISTER.md:F7,RefundController"
+  - id: f8-registered
+    description: "F8 registered, citing the real affected file, on one row"
+    max_score: 4
+    check: "file_table_row_contains_all:RISK_REGISTER.md:F8,RefundController"
   - id: f9-registered
-    description: "F9 registered, citing the real affected file"
+    description: "F9 registered, citing the real affected file, on one row"
     max_score: 3
-    check: "file_contains_all:RISK_REGISTER.md:F9,RefundService"
+    check: "file_table_row_contains_all:RISK_REGISTER.md:F9,RefundService"
   - id: f10-registered
-    description: "F10 registered, citing the real affected file"
+    description: "F10 registered, citing the real affected file, on one row"
     max_score: 3
-    check: "file_contains_all:RISK_REGISTER.md:F10,RefundController"
+    check: "file_table_row_contains_all:RISK_REGISTER.md:F10,RefundController"
+  - id: f11-registered
+    description: "F11 (health check that reports UP without checking anything) registered, citing the real affected file, on one row"
+    max_score: 3
+    check: "file_table_row_contains_all:RISK_REGISTER.md:F11,RefundHealthIndicator"
+  - id: f12-registered
+    description: "F12 (no REFUNDS privilege gate on the base refund path) registered, citing the real affected file, on one row"
+    max_score: 3
+    check: "file_table_row_contains_all:RISK_REGISTER.md:F12,RefundService"
+  - id: f13-registered
+    description: "F13 (no currency-match validation against the original transaction) registered, citing the real affected file, on one row"
+    max_score: 3
+    check: "file_table_row_contains_all:RISK_REGISTER.md:F13,RefundService"
+  - id: f14-registered
+    description: "F14 (no voided-target rejection) registered, citing the real affected file, on one row"
+    max_score: 3
+    check: "file_table_row_contains_all:RISK_REGISTER.md:F14,RefundService"
 
   # --- Plan, Critical first ---
   - id: plan-critical-first
@@ -72,23 +142,23 @@ criteria:
   - id: f1-fixed-with-review
     description: "F1 fixed, with a pr-reviewer PASS recorded in FIXES.md"
     max_score: 8
-    check: "file_contains_all:FIXES.md:F1,PASS"
+    check: "file_table_row_contains_all:FIXES.md:F1,PASS"
   - id: f2-fixed-with-review
     description: "F2 fixed, with a pr-reviewer PASS recorded in FIXES.md"
     max_score: 8
-    check: "file_contains_all:FIXES.md:F2,PASS"
+    check: "file_table_row_contains_all:FIXES.md:F2,PASS"
 
   # --- F8: resolved via the build itself, not by eye ---
   - id: f8-resolved
     description: "F8 (layering violation) resolved -- FIXES.md records it, not just the register"
     max_score: 6
-    check: "file_contains_all:FIXES.md:F8,ArchUnit"
+    check: "file_table_row_contains_all:FIXES.md:F8,ArchUnit"
 
   # --- Backlog integrity: findings NOT in scope must stay documented, not silently dropped ---
   - id: backlog-intact
-    description: "F3,F4,F6,F7,F9,F10 still listed as backlog in RISK_REGISTER.md -- not fixed, not deleted"
+    description: "F3,F4,F6,F7,F9,F10,F12,F13,F14 still listed as backlog in RISK_REGISTER.md -- not fixed, not deleted"
     max_score: 6
-    check: "file_contains_all:RISK_REGISTER.md:F3,F4,F6,F7,F9,F10"
+    check: "all_of:file_contains_all:RISK_REGISTER.md:F3,F4,F6,F7,F9,F10,F12,F13,F14;file_table_rows_gte:RISK_REGISTER.md:15"
 
   # --- Look ahead: no code ---
   - id: secure-features-guide
@@ -97,14 +167,23 @@ criteria:
     check: "file_contains_all:docs/secure-features-guide.md:correlation,tokenisation"
 
   # --- Close: audit trail complete, PAN-clean, security posture documented ---
+  #
+  # These use file_contains_all_uncommented, not file_contains_all, and that difference is
+  # load-bearing. Both templates carry their instructions in HTML comments, and those comments
+  # name the very artifacts and finding ids these criteria look for -- so a plain whole-file
+  # substring check scored an UNTOUCHED repo 20/20 here. Confirmed by running the grader against
+  # a fresh clone, not theorised. Stripping HTML comments first means the keywords have to
+  # appear in something a participant actually wrote. file_sections_nonempty then requires all 7
+  # stage sections to carry real authored text, which is what "all 7 hand-offs" was always
+  # meant to mean.
   - id: workflow-tracker-complete
-    description: "docs/workflow-tracker.md has all 7 stage hand-offs, each citing its own artifact"
+    description: "docs/workflow-tracker.md has all 7 stage hand-offs authored (not just the template's headings), each citing its own artifact"
     max_score: 10
-    check: "file_contains_all:docs/workflow-tracker.md:RISK_REGISTER.md,plan.md,FIXES.md,secure-features-guide.md,SECURITY.md"
+    check: "all_of:file_contains_all_uncommented:docs/workflow-tracker.md:RISK_REGISTER.md,plan.md,FIXES.md,secure-features-guide.md,SECURITY.md;file_sections_nonempty:docs/workflow-tracker.md:7"
   - id: security-md-complete
     description: "SECURITY.md lists F1/F2/F8 as controls and the backlog as known risks, F5 marked escalated"
     max_score: 6
-    check: "file_contains_all:SECURITY.md:F1,F2,F8,escalat"
+    check: "file_contains_all_uncommented:SECURITY.md:F1,F2,F8,escalat"
   - id: no-pan-in-risk-register
     description: "No PAN or secrets leaked into RISK_REGISTER.md while documenting F1"
     max_score: 4
@@ -120,4 +199,4 @@ criteria:
   - id: hand-off-not-templated
     description: "Hand-off entries reference distinct artifacts per stage, not one template x7"
     max_score: 4
-    check: "file_contains_all:docs/workflow-tracker.md:Stage 0,Stage 1,Stage 2,Stage 3,Stage 4,Stage 5,Stage 6"
+    check: "all_of:file_contains_all:docs/workflow-tracker.md:Stage 0,Stage 1,Stage 2,Stage 3,Stage 4,Stage 5,Stage 6;file_sections_nonempty:docs/workflow-tracker.md:7"

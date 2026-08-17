@@ -8,7 +8,7 @@ verify it from the artifacts alone.
 1. Run `mvn verify` — confirm it's fully green: ArchUnit, the compile/test suite, JaCoCo report
    generated.
 2. Update `SECURITY.md`: F1, F2, F8 as Security Controls (cite the fix and its `pr-reviewer`
-   verdict); F3, F4, F6, F7, F9, F10 as Known Risks; **F5 explicitly marked escalated, not
+   verdict); F3, F4, F6, F7, F9–F14 as Known Risks; **F5 explicitly marked escalated, not
    defaulted** — its own row, not folded into the others.
 3. Confirm `docs/workflow-tracker.md` has a `/hand-off` entry for every stage (0 through 6),
    each one citing the specific artifact filename that stage produced — not a repeated

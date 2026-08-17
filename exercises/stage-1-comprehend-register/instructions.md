@@ -1,15 +1,15 @@
 # Stage 1 — Comprehend and register
 
-**Goal:** a registered, prioritized `RISK_REGISTER.md` with all ten findings — not just the ones
+**Goal:** a registered, prioritized `RISK_REGISTER.md` with all fourteen findings — not just the ones
 you plan to fix.
 
 ## Steps
 
 1. **First, with your own eyes, no AI.**
-   - Start the app (`mvn spring-boot:run`). Submit the same `POST /refunds/offline` request
+   - Start the app (`mvn spring-boot:run`). Submit the same `POST /card-payments/cpg-1001/refunds` request
      twice with the same `idempotencyKey` — two records exist instead of one 409.
    - Open the application log — the authorization code appears in cleartext.
-   - Try `POST /void-refunds` — it answers, and per `specs/OUT_OF_SCOPE.md`, it shouldn't exist
+   - Try `POST /card-payments/cpg-1001/void` — it answers, and per `specs/OUT_OF_SCOPE.md`, it shouldn't exist
      at all.
 2. Read `specs/refunds-s2i-phase1.spec.md` and `specs/OUT_OF_SCOPE.md` in full.
 3. **Then** direct-prompt Claude Code:
@@ -30,7 +30,7 @@ you plan to fix.
 
 ## Acceptance criteria
 
-- [ ] All ten findings registered, each citing a real affected file
+- [ ] All fourteen findings registered, each citing a real affected file
 - [ ] At least 2 findings found before any AI involvement
 - [ ] At least 2 decoys explicitly rejected with a stated reason
 - [ ] F5's status (found or not) is explicit, not silently skipped

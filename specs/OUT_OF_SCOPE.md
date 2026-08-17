@@ -3,8 +3,11 @@
 Explicit and unambiguous, per `pgs-lab-spec-pack.md`, Spec 1:
 
 - **Unsettled transactions.**
-- **All Void flows** (Void-Auth, Void-Capture, Void-Pay, Void-Refund). `POST /void-refunds`
-  answering at all is finding F3 — register it, do not build it out further.
+- **All Void flows** (Void-Auth, Void-Capture, Void-Pay, Void-Refund). `POST /card-payments/{card_payment_gateway_id}/void`
+  answering at all is finding F3 — register it, do not build it out further. The path shape itself is an
+  assumption rather than a confirmed contract path: because every Void flow is out of scope, the spec pack
+  never publishes a Void endpoint, so this lab's path follows the `/card-payments/{card_payment_gateway_id}/...`
+  convention of the refund endpoints purely for internal consistency.
 - **Pre-settlement reversals.**
 - **Non-card refunds.**
 - **DCF / settlement data generation** — handled downstream, not by this service. The online

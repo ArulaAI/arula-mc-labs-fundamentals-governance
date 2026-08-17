@@ -1,0 +1,28 @@
+{
+  "id": "f1-log-leak",
+  "_comment": [
+    "Workstream D -- anti-gaming leak-reintroduction fixture.",
+    "These two statements ARE finding F1 as seeded in this repo: the success-path INFO line",
+    "logs the whole RefundRecord (carrying authorizationCode in cleartext), and the",
+    "failure-path ERROR line dumps the whole inbound RefundRequest.",
+    "Captured from this repo's own RefundService.java. Note there is no audit-file sink in",
+    "this codebase -- only the log-line leak -- so do not add one here.",
+    "anti_gaming_check.py re-injects these into a throwaway copy of the repo and re-runs the",
+    "participant's own F1 test. A test that still passes with the leak restored was never",
+    "detecting the leak."
+  ],
+  "target": "src/main/java/com/mc/pgs/refunds/service/RefundService.java",
+  "method": "processOfflineRefund",
+  "replacements": [
+    {
+      "id": "success-log",
+      "find_regex": "log\\.info\\((?:[^;]|\\n)*?\\);",
+      "replace": "log.info(\"Processed offline refund: {}\", record);"
+    },
+    {
+      "id": "failure-log",
+      "find_regex": "log\\.error\\((?:[^;]|\\n)*?\\);",
+      "replace": "log.error(\"Failed to process offline refund for request={}\", request, ex);"
+    }
+  ]
+}
