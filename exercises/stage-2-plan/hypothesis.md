@@ -2,7 +2,7 @@
 
 Before reading `planner`'s output:
 
-**Predict:** will the plan correctly leave out F3–F10, or will it drift into "helpfully"
+**Predict:** will the plan correctly leave out F3–F14, or will it drift into "helpfully"
 including a step for one of them (e.g. "also fix the missing correlation ID while we're here")?
 
 ## My prediction

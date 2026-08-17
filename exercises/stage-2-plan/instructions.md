@@ -14,7 +14,7 @@
    ```
 2. Review the plan yourself against the plugin's `payments-guardrails` rule and the spec's own
    acceptance criteria before moving on. Close any gap you find — don't accept a plan that
-   silently expands scope (e.g. a step that also touches F3–F10) or silently narrows it (e.g.
+   silently expands scope (e.g. a step that also touches F3–F14) or silently narrows it (e.g.
    no step for the online-path build at all).
 
 ## Acceptance criteria

@@ -12,7 +12,7 @@
    structured error handling via @ControllerAdvice. No code changes.
    ```
 2. Review it: every recommendation should be grounded in something specific to this codebase
-   (a real backlog finding — F7, F9, F10 — or a real gap in the current design), not generic
+   (a real backlog finding — F7, F9, F10, F11 — or a real gap in the current design), not generic
    security advice that could apply to any service.
 
 ## Acceptance criteria

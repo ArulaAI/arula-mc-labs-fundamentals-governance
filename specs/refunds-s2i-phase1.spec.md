@@ -7,20 +7,50 @@
 This spec ships complete and pre-authored for Lab 1 — comprehension and judgment against a real
 spec, not spec authoring (that's Lab 2).
 
-## Fidelity note — read before assuming this is the literal production contract
+## Fidelity note — what is real here, and what is still simulated
 
-This lab's `RefundController` uses a simplified endpoint shape (`POST /refunds/offline`,
-`POST /refunds/online`) and a simplified request record, not the real PGS API contract. The real
-contract is considerably more detailed: two endpoints on the Payment Processor selected by what
-the caller supplies (`POST /card-payments/{card_payment_gateway_id}/refunds` and
-`POST /card-payments/{card_payment_gateway_id}/card-captures/{card_transaction_gateway_id}/refunds`),
-with a full WSAPI-to-Payment-Processor field mapping (`merchantId`→`merchantWsApiId`,
-`transactionId`→`wsApiSupport.transactionWsApiId`, etc.). This simplification is a deliberate
-120-minute-lab choice, made explicitly and not silently — don't mistake the seeded code below for
-the literal production API surface.
+This lab's endpoints now match the real PGS contract shape:
+- `POST /card-payments/{card_payment_gateway_id}/refunds` — refund a PAYMENT
+- `POST /card-payments/{card_payment_gateway_id}/card-captures/{card_transaction_gateway_id}/refunds` — refund a CAPTURE
 
-The **business rules and findings below are faithful to the real spec pack**, even though the
-endpoint shapes are simplified.
+Offline vs. online is determined by the request-body field `wsApiSupport.refundAuthorization`, not by URL.
+
+The WSAPI-to-Payment-Processor field mapping is faithful to the contract:
+
+| WSAPI request | Payment Processor request |
+|---|---|
+| `merchantId` | `merchantWsApiId` |
+| `transactionId` | `wsApiSupport.transactionWsApiId` |
+| `orderId` | `wsApiSupport.orderWsApiId` |
+| `version` | `wsApiSupport.wsApiVersion` |
+| `transaction.amount` | `amounts.transactionAmount` |
+| `transaction.currency` | `paymentCurrency` |
+| `transaction.reference` | `merchantOrder.transactionReference` |
+| `transaction.targetTransactionId` | `wsApiSupport.targetTransactionWsApiId` (capture refunds only) |
+| `action.refundAuthorization` | `wsApiSupport.refundAuthorization` |
+
+What remains simulated, and what is simply absent:
+
+- **CPC, LCS and DCF are not in this process at all.** The real flow is
+  WSAPI → TTA → Payment Processor → CPC → injection → LCS API → DCF; this lab is the Payment
+  Processor step only. (The spec pack retains those system names without expanding them, and
+  neither does this document — guessing at what the initials stand for would be inventing
+  detail the source does not carry.)
+- **Settlement is downstream.** The online refund path authorizes; it must not write settlement
+  records. DCF / settlement data generation is explicitly out of scope.
+- **The H2 in-memory store is a lab fixture**, not a representation of PGS's persistence. It
+  uses plain JDBC with explicit SQL and no ORM, which does mirror the real access pattern. That
+  it does not survive a restart is a property of the fixture, not a finding — expect it to be
+  raised in Stage 1 and correctly rejected.
+
+Assumptions (not yet confirmed against the real contract):
+1. The Void endpoint path `POST /card-payments/{card_payment_gateway_id}/void` — the spec pack
+   never publishes a Void path because all Void flows are out of scope, so this lab's path follows
+   the refund endpoints' convention for internal consistency only.
+2. `idempotencyKey` as a top-level request field — the spec pack states the 409 idempotency-conflict
+   rule but never names the transport field.
+
+The **business rules and findings below are faithful to the real spec pack**.
 
 ## In scope (Phase 1)
 
@@ -37,7 +67,7 @@ See `specs/OUT_OF_SCOPE.md`.
 
 ## Business rules (testable)
 
-- Only a PAYMENT or CAPTURE may be refunded; a voided transaction cannot be refunded.
+- Only a PAYMENT or CAPTURE may be refunded; a voided transaction cannot be refunded (finding F14).
 - Refund amount must not exceed the total captured amount, **unless** the merchant holds the
   `EXCESSIVE_REFUNDS` privilege.
 - A retried refund request with the same `idempotencyKey` must return **409** and create no
@@ -52,6 +82,9 @@ See `specs/OUT_OF_SCOPE.md`.
   actual value is genuinely not specified anywhere in the spec pack.** This is not an oversight to
   fix — it is finding F5 (see `RISK_REGISTER.md`). The correct response is to register and escalate
   the gap, not invent a default value.
+- The merchant must hold the `REFUNDS` privilege to submit a refund; its absence must be rejected
+  with 403 (finding F12).
+- Refund currency must match the original transaction's currency (finding F13).
 
 ## Acceptance criteria
 

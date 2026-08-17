@@ -12,4 +12,4 @@ resolved (`mvn verify` green on ArchUnit), and `processOnlineRefund()` built to 
   genuinely fixed this pass even though it isn't a `.claude/lab.json` target)
 - `RISK_REGISTER.md` updated: F1, F2, F8 marked `Remediated`; everything else untouched
 - Diffs are scoped to their target finding only — no unrelated cleanup bundled in
-- F3–F7, F9, F10 remain untouched and still `Open`
+- F3–F7 and F9–F14 remain untouched and still `Open`

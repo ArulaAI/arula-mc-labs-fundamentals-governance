@@ -37,8 +37,27 @@ public class RefundService {
      *
      * F1 -- the authorization code is logged in cleartext at INFO below. F4 -- the call to
      * preRiskAssessmentClient below is a hallucinated dependency; the spec has no such step.
+     *
+     * Three further findings are seeded here by omission rather than by wrong code -- F12, F13
+     * and F14 (see RISK_REGISTER.md). Each is a business rule the spec pack states plainly and
+     * this method simply never implements. All three are backlog: register them, do not fix
+     * them in this lab.
      */
     public RefundDecision processOfflineRefund(RefundRequest request) {
+        // F12: no REFUNDS privilege gate. The spec pack's error table is explicit -- "Missing
+        // REFUNDS privilege -> Rejected (403)" -- and REFUNDS is "required for all refunds".
+        // This method never inspects request.merchantPrivileges() at all, so a merchant with no
+        // privileges gets a refund processed. Distinct from F6, which is specifically about the
+        // EXCESSIVE_REFUNDS gate on the above-captured-amount path.
+        //
+        // F13: no currency-match validation. The spec pack requires the refund currency to
+        // equal the original order currency ("Currency mismatch -> Rejected"). The inbound
+        // paymentCurrency is written straight to the record below, never compared to anything.
+        //
+        // F14: no voided-target rejection. "Voided transactions cannot be refunded" and
+        // "Target transaction voided -> Rejected". Nothing here looks up the target
+        // transaction's status, so a VOIDED record can be refunded.
+
         // F4: no pre-risk-assessment step exists in the spec for subsequent refunds.
         preRiskAssessmentClient.assess(request);
 
