@@ -17,9 +17,15 @@ trail a reviewer who wasn't in the room could trust.
 - Claude Code, **latest version** — this lab depends on the `workbench` plugin, whose own
   `docs/ARCHITECTURE.md` requires 2.1.177+ for component auto-discovery. No floor to manage
   below that; just stay current.
-- The `workbench` plugin installed from the private marketplace:
-  `claude plugin install workbench@<marketplace>` (confirm the exact marketplace name with
-  whoever hosts it before session day)
+- The `workbench` plugin, installed from a local clone, not a marketplace. Confirmed against the
+  plugin repo's own commit history: its maintainer deliberately removed the marketplace directory
+  ("workbench is a private plugin... not intended for any public Claude plugin marketplace") and
+  its `workbench/README.md` documents the real install path instead:
+  ```
+  git clone https://github.com/ArulaAI/arula-mc-labs-plugin
+  claude plugin install ./arula-mc-labs-plugin/workbench
+  claude plugin validate ./arula-mc-labs-plugin/workbench   # optional sanity check
+  ```
 - `~/.m2` pre-warmed before session day — this service makes no outbound network calls at
   *runtime*, but the first `mvn verify` on a cold `~/.m2` resolves dependencies over the network
   like any Maven build
