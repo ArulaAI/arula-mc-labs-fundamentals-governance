@@ -13,8 +13,13 @@ deleted, and not silently fixed later without an explicit decision to do so (see
 |---|---|---|---|---|---|---|
 | | | | | | | |
 
-<!-- Add one row per finding, all ten. Expect roughly 2 found unaided, 6-7 surfaced when you
-     prompt Claude Code, and 2-3 decoys correctly rejected -- see docs/FACILITATOR_KEY.md for
-     the realistic yield if you want to check your group's pace against it (facilitators only,
-     don't peek before you've registered your own findings). Cite the actual affected file for
-     each row, not a placeholder -- this is a graded content check, not just an existence check. -->
+<!-- Add one row per finding, all fourteen. Expect roughly 2 found unaided, 9-10 surfaced when
+     you prompt Claude Code (especially when you ask it to compare the code against
+     specs/refunds-s2i-phase1.spec.md rule by rule), and 2-3 decoys correctly rejected -- see
+     docs/FACILITATOR_KEY.md for the realistic yield if you want to check your group's pace
+     against it (facilitators only, don't peek before you've registered your own findings).
+
+     Cite the actual affected file for each row, not a placeholder -- this is a graded content
+     check, not just an existence check. One finding per row: a single line crammed with every
+     finding id scores close to zero, because the grader requires each finding to sit on its own
+     well-formed row with its columns actually filled in. -->

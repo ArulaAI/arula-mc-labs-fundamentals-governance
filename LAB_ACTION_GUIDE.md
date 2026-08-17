@@ -81,10 +81,13 @@ exists to catch is *accepting a fix unread because you already believe it works*
   the same refund twice (two records exist), open the log (authorization code in cleartext).
   Then prompt Claude Code for a file-by-file review — no fixes yet. Then triage what comes
   back: confirm real findings, reject decoys with a stated reason, rank by severity. Fill
-  `RISK_REGISTER.md` yourself, one row per finding, all ten, including backlog.
+  `RISK_REGISTER.md` yourself, one row per finding, all fourteen, including backlog.
 - **Stage 2 — Plan.** `planner` turns your register into `docs/plans/plan.md`, Critical first,
   scoped to F1/F2 plus building `processOnlineRefund()`. Review it against the plugin's
-  guardrail rules and the spec's own acceptance criteria before moving on.
+  guardrail rules and the spec's own acceptance criteria before moving on. **Facilitator
+  overhead running in parallel, not out of your budget:** the facilitator spot-checks 3 of your
+  group's 14 register rows against the actual code (Stage 1→2 validation) — about 2 minutes,
+  outside participant time.
 - **Stage 3 — Prove it's broken.** Direct-prompt JUnit 5 tests asserting the intended behavior
   for F1 and F2. Checkpoint: `mvn test` shows exactly two new reds, everything else green — and
   `mvn verify` reports the same two, not three. `ArchitectureIT` (F8) is still genuinely red
@@ -94,10 +97,13 @@ exists to catch is *accepting a fix unread because you already believe it works*
   addressed — move the privilege-evaluation logic out of `RefundController` into
   `RefundService`; you don't have to hunt for this by eye, the build tells you. Then build
   `processOnlineRefund()`: honour `TOGGLE_ENABLE_ONLINE_REFUND`, null the authorization code
-  from retrieval unless the return-authorization-data toggle is ON, do **not** write settlement
-  records. **Watch the traps:** a PAN-masking-library request should fail the unknown-dependency
-  check; an offer to write the settlement leg should be declined; a naive build that skips the
-  `EXCESSIVE_REFUNDS` check reproduces F6 live. Update `RISK_REGISTER.md` and `FIXES.md`.
+  from retrieval unless the return-authorization-data toggle is ON (online refunds only; the
+  offline response body legitimately returns the auth code), do **not** write settlement
+  records. Online-vs-offline is selected by the request body's `wsApiSupport.refundAuthorization`,
+  not by a separate URL. **Watch the traps:** a PAN-masking-library request should fail the
+  unknown-dependency check; an offer to write the settlement leg should be declined; a naive
+  build that skips the `EXCESSIVE_REFUNDS` check reproduces F6 live. Update `RISK_REGISTER.md`
+  and `FIXES.md`.
 - **Stage 5 — Look ahead.** `planner` in guide mode writes `docs/secure-features-guide.md` —
   proactive controls grounded in this codebase (correlation IDs, tokenisation, config
   externalisation, deny-by-default validation, `@ControllerAdvice`). No code changes.
@@ -114,12 +120,20 @@ exists to catch is *accepting a fix unread because you already believe it works*
 Deterministic — the same journey file always produces the same score against
 `.claude/rubrics/finish-the-refund.rubric.yaml`. Writes `.claude/journey/<session_id>-grade.json`.
 
+Fallback: if the `workbench` plugin is not installed, run:
+
+```bash
+python3 .claude/scripts/grade_repo.py
+```
+
+This produces the same deterministic score against the same rubric file.
+
 ## Ground rules
 
 - No remediation without its test failing first.
 - Only F1 and F2 get fixed this pass (`.claude/lab.json` targets), plus building the online
   refund path. F8 gets fixed too, because the build won't go green otherwise. Everything else
-  (F3, F4, F6, F7, F9, F10) stays `Open`, not silently resolved — and **F5 stays registered and
+  (F3, F4, F6, F7, F9, F10, F11, F12, F13, F14) stays `Open`, not silently resolved — and **F5 stays registered and
   escalated**, not defaulted, which is a different thing from ordinary backlog.
 - `docs/FACILITATOR_KEY.md` is the answer key. Nothing currently blocks you from opening it
   early — that's on your own discipline, not a hook. Reading it before you've registered your
@@ -133,5 +147,7 @@ Deterministic — the same journey file always produces the same score against
 - [`AGENTS.md`](./AGENTS.md) — canonical rule, subagent, command, and hook reference
 - [`README.md`](./README.md) — architecture note, prerequisites, generated artifacts
 - [`docs/FACILITATOR_KEY.md`](./docs/FACILITATOR_KEY.md) — facilitator answer key (not for participants)
+- [`docs/SOURCE_TRACEABILITY.md`](./docs/SOURCE_TRACEABILITY.md) — which design decisions come
+  from the real PGS spec pack and which are labelled lab assumptions
 - [`exercises/`](./exercises/) — per-stage instructions, exact prompts, and a predict-before-you-look hypothesis exercise
 - [`specs/refunds-s2i-phase1.spec.md`](./specs/refunds-s2i-phase1.spec.md) — the spec this lab is built against

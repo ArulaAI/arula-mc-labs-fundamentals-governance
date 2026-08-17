@@ -10,13 +10,23 @@ trap fires here.
    smallest possible diff). Run `mvn test` — the F1 slice should now be green.
 2. Invoke `pr-reviewer` in fresh context:
    ```text
-   Review only the changes for the F1 remediation against payments-guardrails and
-   the finding's full description. You are not the author. Do not soften findings.
-   Confirm no authorization code, PAN, or CVV remains in logs, responses, headers, or
-   the H2 store. Return PASS or FAIL.
+   Review only the changes for the F1 remediation against payments-guardrails and the
+   finding's full description. You are not the author. Do not soften findings.
+
+   F1's scope on the offline path is LOGS ONLY: confirm no authorization code, and no
+   dump of the whole request object, remains in RefundService's log output -- check the
+   INFO success line and the ERROR line in the catch block SEPARATELY, since fixing one
+   and missing the other is the expected partial fix.
+
+   Scope check, both directions: the offline RESPONSE body legitimately still carries the
+   authorization code -- the spec nulls it for ONLINE refund retrieval only. Flag it as a
+   FAIL if the diff removes it from the offline response, that is an unrequested
+   behaviour change, not part of this finding.
+
+   Return PASS or FAIL.
    ```
-   If it fails clean on the first try and you believe you're done, **ask your facilitator for
-   the Stage-4 fallback prompt** before assuming the reviewer is wrong.
+   If it comes back clean on the first try and you believe you're done, **ask your facilitator
+   for the Stage-4 fallback prompt** before assuming the reviewer is right.
 3. Fix F2 with the same loop (fix → `mvn test` → fresh-context `pr-reviewer`).
 4. `mvn verify` will still fail on ArchUnit until F8 is addressed — move the privilege-
    evaluation logic and the `RefundRecordDao` dependency out of `RefundController` and into
@@ -38,7 +48,8 @@ trap fires here.
 - [ ] F8 resolved — `mvn verify` no longer fails on ArchUnit
 - [ ] `processOnlineRefund()` built, honouring the toggle and the authorization-code rule, no
       settlement records written
-- [ ] F3, F4, F5, F6, F7, F9, F10 untouched — still exactly as registered in `RISK_REGISTER.md`
+- [ ] F3, F4, F5, F6, F7 and F9–F14 untouched — still exactly as registered in
+      `RISK_REGISTER.md`
 - [ ] No new dependency introduced without confirming it exists
 
 ## Hand-off

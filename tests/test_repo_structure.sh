@@ -1,9 +1,22 @@
 #!/usr/bin/env bash
 # test_repo_structure.sh — validates this repo's structure as a plugin-consuming Claude Code
 # repo (depends on the `workbench` plugin installed from the marketplace -- see AGENTS.md
-# "Prerequisites"). Supersedes the earlier self-contained-bash-hooks version: this repo no
-# longer commits its own .claude/agents/, .claude/rules/, or .claude/hooks/ -- those come from
-# the plugin now, and a repo-local copy would shadow/conflict with it.
+# "Prerequisites").
+#
+# The rule this file enforces is narrower than it used to be, and the narrowing is deliberate.
+# The old rule was a blanket ban on repo-local .claude/agents/, .claude/rules/ and
+# .claude/hooks/. The real risk was never "a local file exists"; it was "a local file DUPLICATES
+# something the plugin also provides, and the two silently drift apart". So the rule is now:
+#
+#   repo-local components are forbidden only where they would duplicate plugin-provided
+#   functionality.
+#
+# .claude/hooks/gate_guard.py is the documented exception. The plugin ships no blocking hook at
+# all -- quality_gates.py reports, it does not block -- so there is nothing for gate_guard.py to
+# drift out of sync with, and without it reference/ is not actually gated during a live session.
+# Same reasoning for .claude/scripts/grade_repo.py: the plugin's grader does not implement the
+# content checks this repo's rubric needs, so the local one is a stopgap, not a duplicate.
+# .claude/agents/ and .claude/rules/ ARE plugin-provided, so those stay banned below.
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -20,40 +33,95 @@ for f in docs/FACILITATOR_KEY.md .claude/lab.json .claude/rubrics/finish-the-ref
     [ -f "$REPO_ROOT/$f" ] && check 0 "$f exists" || check 1 "$f exists"
 done
 
+# NOTE on the node snippets below: they use process.stdout.write, not console.log. console.log
+# runs non-string values through util.inspect, and Node 26 emits ANSI colour codes even when
+# stdout is a pipe -- so $(node -e "console.log(true)") captures an escape-wrapped string that
+# never equals "true". Found here as two silently-failing checks. Keep them as raw writes.
 if command -v node >/dev/null 2>&1; then
     node -e "JSON.parse(require('fs').readFileSync(process.argv[1],'utf8'))" "$REPO_ROOT/.claude/lab.json" \
         && check 0 ".claude/lab.json is valid JSON" || check 1 ".claude/lab.json is valid JSON"
-    targets=$(node -e "console.log(JSON.parse(require('fs').readFileSync(process.argv[1],'utf8')).targets.join(','))" "$REPO_ROOT/.claude/lab.json")
+    targets=$(node -e "process.stdout.write(String(JSON.parse(require('fs').readFileSync(process.argv[1],'utf8')).targets.join(',')))" "$REPO_ROOT/.claude/lab.json")
     [ "$targets" = "F1,F2" ] && check 0 ".claude/lab.json targets are exactly F1,F2" || check 1 ".claude/lab.json targets are exactly F1,F2 (got: $targets)"
-    rubric_path=$(node -e "console.log(JSON.parse(require('fs').readFileSync(process.argv[1],'utf8')).rubric)" "$REPO_ROOT/.claude/lab.json")
+    rubric_path=$(node -e "process.stdout.write(String(JSON.parse(require('fs').readFileSync(process.argv[1],'utf8')).rubric))" "$REPO_ROOT/.claude/lab.json")
     [ "$rubric_path" = ".claude/rubrics/finish-the-refund.rubric.yaml" ] && check 0 ".claude/lab.json rubric path matches the shipped rubric" || check 1 ".claude/lab.json rubric path matches the shipped rubric (got: $rubric_path)"
 
     node -e "JSON.parse(require('fs').readFileSync(process.argv[1],'utf8'))" "$REPO_ROOT/.claude/settings.json" \
         && check 0 ".claude/settings.json is valid JSON" || check 1 ".claude/settings.json is valid JSON"
-    journey_dir=$(node -e "console.log((JSON.parse(require('fs').readFileSync(process.argv[1],'utf8')).env||{}).WORKBENCH_JOURNEY_DIR||'')" "$REPO_ROOT/.claude/settings.json")
+    journey_dir=$(node -e "process.stdout.write(String((JSON.parse(require('fs').readFileSync(process.argv[1],'utf8')).env||{}).WORKBENCH_JOURNEY_DIR||''))" "$REPO_ROOT/.claude/settings.json")
     [ "$journey_dir" = ".claude/journey" ] && check 0 "settings.json sets WORKBENCH_JOURNEY_DIR=.claude/journey" || check 1 "settings.json sets WORKBENCH_JOURNEY_DIR=.claude/journey (got: '$journey_dir')"
 
     node -e "JSON.parse(require('fs').readFileSync(process.argv[1],'utf8'))" "$REPO_ROOT/.claude/gate-guard.json" \
         && check 0 ".claude/gate-guard.json is valid JSON" || check 1 ".claude/gate-guard.json is valid JSON"
-    denies_reference=$(node -e "console.log(JSON.parse(require('fs').readFileSync(process.argv[1],'utf8')).deny.includes('reference/**'))" "$REPO_ROOT/.claude/gate-guard.json")
+    denies_reference=$(node -e "process.stdout.write(String(JSON.parse(require('fs').readFileSync(process.argv[1],'utf8')).deny.includes('reference/**')))" "$REPO_ROOT/.claude/gate-guard.json")
     [ "$denies_reference" = "true" ] && check 0 ".claude/gate-guard.json denies reference/**" || check 1 ".claude/gate-guard.json denies reference/**"
 else
     echo "SKIP: node not available -- JSON content checks not run" >&2
 fi
 
 # Only /hand-off is repo-local -- /lab and /grade come from the plugin now. A repo-local
-# lab.md or grade.md would shadow the plugin's real ones and is a regression, not a feature.
+# lab.md or grade.md WOULD duplicate a plugin command and shadow it, which is exactly the
+# failure the narrowed rule is about. grade_repo.py is documented as a fallback to run directly,
+# not wired up as a shadowing /grade command.
 [ -f "$REPO_ROOT/.claude/commands/hand-off.md" ] && check 0 ".claude/commands/hand-off.md exists (repo-local, no plugin equivalent)" || check 1 ".claude/commands/hand-off.md exists"
 [ ! -f "$REPO_ROOT/.claude/commands/lab.md" ] && check 0 "no repo-local lab.md shadowing the plugin's /lab" || check 1 "no repo-local lab.md shadowing the plugin's /lab"
 [ ! -f "$REPO_ROOT/.claude/commands/grade.md" ] && check 0 "no repo-local grade.md shadowing the plugin's /grade" || check 1 "no repo-local grade.md shadowing the plugin's /grade"
 
 [ "$(cat "$REPO_ROOT/CLAUDE.md" | tr -d '[:space:]')" = "@AGENTS.md" ] && check 0 "CLAUDE.md is the @AGENTS.md one-liner" || check 1 "CLAUDE.md is the @AGENTS.md one-liner"
 
-# No leftover repo-local agents/rules/hooks -- these must come from the plugin, not a local
-# copy that can silently drift out of sync with it.
+# Agents and rules ARE plugin-provided, so a repo-local copy would duplicate and drift.
 [ ! -d "$REPO_ROOT/.claude/agents" ] && check 0 "no repo-local .claude/agents/ (plugin-provided)" || check 1 "no repo-local .claude/agents/ (plugin-provided)"
 [ ! -d "$REPO_ROOT/.claude/rules" ] && check 0 "no repo-local .claude/rules/ (plugin-provided)" || check 1 "no repo-local .claude/rules/ (plugin-provided)"
-[ ! -d "$REPO_ROOT/.claude/hooks" ] && check 0 "no repo-local .claude/hooks/ (plugin-provided)" || check 1 "no repo-local .claude/hooks/ (plugin-provided)"
+
+# .claude/hooks/ is NOT banned outright -- only hooks that duplicate a plugin hook are. The one
+# file allowed here is gate_guard.py, which has no plugin equivalent. Anything else appearing in
+# this directory is the drift risk the rule exists to prevent, so it fails.
+if [ -d "$REPO_ROOT/.claude/hooks" ]; then
+    unexpected=$(find "$REPO_ROOT/.claude/hooks" -maxdepth 1 -type f ! -name 'gate_guard.py' ! -name '.gitkeep' | wc -l | tr -d ' ')
+    [ "$unexpected" = "0" ] && check 0 ".claude/hooks/ contains only the documented gate_guard.py exception" || check 1 ".claude/hooks/ contains $unexpected file(s) beyond gate_guard.py -- a repo-local hook is only allowed where the plugin has no equivalent"
+fi
+
+# The two lab-local stopgaps must actually be present -- without gate_guard.py, reference/ is
+# not gated; without grade_repo.py, there is no grading fallback when the plugin is absent.
+[ -f "$REPO_ROOT/.claude/hooks/gate_guard.py" ] && check 0 ".claude/hooks/gate_guard.py exists (blocking gate; no plugin equivalent)" || check 1 ".claude/hooks/gate_guard.py exists"
+[ -f "$REPO_ROOT/.claude/scripts/grade_repo.py" ] && check 0 ".claude/scripts/grade_repo.py exists (grading fallback)" || check 1 ".claude/scripts/grade_repo.py exists"
+[ -f "$REPO_ROOT/.claude/scripts/anti_gaming_check.py" ] && check 0 ".claude/scripts/anti_gaming_check.py exists (leak-reintroduction check)" || check 1 ".claude/scripts/anti_gaming_check.py exists"
+[ -f "$REPO_ROOT/.claude/fixtures/f5-refund-expiry.json" ] && check 0 ".claude/fixtures/f5-refund-expiry.json exists (F5 seed-integrity fixture)" || check 1 ".claude/fixtures/f5-refund-expiry.json exists"
+[ -f "$REPO_ROOT/.claude/fixtures/f1-log-leak.json" ] && check 0 ".claude/fixtures/f1-log-leak.json exists (F1 leak-reintroduction fixture)" || check 1 ".claude/fixtures/f1-log-leak.json exists"
+
+# The hook is only real if it is actually wired into settings.json.
+if command -v node >/dev/null 2>&1; then
+    wired=$(node -e "
+      const s=JSON.parse(require('fs').readFileSync(process.argv[1],'utf8'));
+      const pre=((s.hooks||{}).PreToolUse)||[];
+      process.stdout.write(String(pre.some(g=>(g.hooks||[]).some(h=>String(h.command||'').includes('gate_guard.py')))));
+    " "$REPO_ROOT/.claude/settings.json")
+    [ "$wired" = "true" ] && check 0 "settings.json wires gate_guard.py as a PreToolUse hook" || check 1 "settings.json wires gate_guard.py as a PreToolUse hook"
+fi
+
+# And it is only trustworthy if it still blocks every bypass class it was written for.
+if command -v python3 >/dev/null 2>&1; then
+    python3 "$REPO_ROOT/.claude/hooks/gate_guard.py" --self-test >/dev/null 2>&1 \
+        && check 0 "gate_guard.py --self-test passes (all four bypass classes blocked)" \
+        || check 1 "gate_guard.py --self-test FAILED -- run it directly to see which bypass class regressed"
+fi
+
+# F11's seed and its dependency
+[ -f "$REPO_ROOT/src/main/java/com/mc/pgs/refunds/health/RefundHealthIndicator.java" ] && check 0 "F11 seed RefundHealthIndicator.java exists" || check 1 "F11 seed RefundHealthIndicator.java exists"
+grep -q "spring-boot-starter-actuator" "$REPO_ROOT/pom.xml" && check 0 "pom.xml declares spring-boot-starter-actuator (F11's /actuator/health surface)" || check 1 "pom.xml declares spring-boot-starter-actuator"
+
+# The Stage 3 fixture builder -- participants must not be hand-assembling the nested request.
+[ -f "$REPO_ROOT/src/test/java/com/mc/pgs/refunds/support/RefundRequestFixtures.java" ] && check 0 "RefundRequestFixtures.java exists (Stage 3 test-fixture builder)" || check 1 "RefundRequestFixtures.java exists"
+
+# Endpoints follow the real PGS contract shape, and the F3 Void path matches what
+# tests/test_seeded_findings.sh greps for. These two drifting apart is how F3's regression test
+# silently stops testing anything.
+CTRL="$REPO_ROOT/src/main/java/com/mc/pgs/refunds/api/RefundController.java"
+grep -q '@PostMapping("/card-payments/{card_payment_gateway_id}/refunds")' "$CTRL" && check 0 "controller exposes the real PAYMENT-refund endpoint" || check 1 "controller exposes the real PAYMENT-refund endpoint"
+grep -q '@PostMapping("/card-payments/{card_payment_gateway_id}/card-captures/{card_transaction_gateway_id}/refunds")' "$CTRL" && check 0 "controller exposes the real CAPTURE-refund endpoint" || check 1 "controller exposes the real CAPTURE-refund endpoint"
+! grep -qE '@PostMapping\("/refunds/(offline|online)"\)' "$CTRL" && check 0 "the old simplified /refunds/offline|online stand-ins are gone" || check 1 "the old simplified /refunds/offline|online stand-ins are still present"
+void_path=$(grep -oE '@PostMapping\("[^"]*void[^"]*"\)' "$CTRL" | head -1)
+grep -q "$void_path" "$REPO_ROOT/tests/test_seeded_findings.sh" && check 0 "F3's Void path in the controller matches what test_seeded_findings.sh greps for" || check 1 "F3's Void path drifted from test_seeded_findings.sh -- rename them in the same change or F3's regression test stops testing anything"
+
 [ ! -f "$REPO_ROOT/.claude/fundamentals.rubric.yaml" ] && check 0 "old fundamentals.rubric.yaml removed" || check 1 "old fundamentals.rubric.yaml removed"
 
 # No leftover old-domain source

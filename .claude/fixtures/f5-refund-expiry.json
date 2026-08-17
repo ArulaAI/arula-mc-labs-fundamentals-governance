@@ -1,0 +1,27 @@
+{
+  "id": "f5-refund-expiry",
+  "_comment": [
+    "Workstream E -- F5 byte-for-byte grading rigor.",
+    "F5 is the lab's central lesson: the REFUND_EXPIRY window is genuinely undefined in the",
+    "spec pack, and the correct move is to register and escalate the gap, never to invent a",
+    "value. A keyword check on RISK_REGISTER.md only proves the participant wrote a row. This",
+    "fixture proves they also left the code alone -- so a participant who invents a default",
+    "AND writes a tidy register row cannot score the F5 criterion.",
+    "expect_exact was captured verbatim from the shipped RefundPrivilege.java. If that file is",
+    "ever legitimately reformatted, regenerate this fixture in the same commit."
+  ],
+  "target": "src/main/java/com/mc/pgs/refunds/domain/RefundPrivilege.java",
+  "also_scan": [
+    "src/main/resources/application.yml"
+  ],
+  "expect_exact": [
+    "    /**\n     * Enforces the allowed refund expiry window.\n     *\n     * The window's actual value is NOT specified anywhere in the spec pack -- this is\n     * deliberate (see specs/refunds-s2i-phase1.spec.md and RISK_REGISTER.md, finding F5). Do\n     * not invent a default duration here. The correct response to this gap is to register and\n     * escalate it, not to silently pick a value.\n     */\n    REFUND_EXPIRY"
+  ],
+  "forbid_regex": [
+    "REFUND_EXPIRY[^;\\n]{0,120}=\\s*[0-9]",
+    "REFUND_EXPIRY_(?:DAYS|MONTHS|HOURS|MINUTES|SECONDS|WINDOW|LIMIT)",
+    "refund[-_. ]?expiry[^\\n]{0,60}:\\s*[0-9]",
+    "Duration\\.of[A-Za-z]+\\([^)]*\\)[^\\n]{0,60}REFUND_EXPIRY",
+    "REFUND_EXPIRY[^\\n]{0,80}Duration\\.of"
+  ]
+}

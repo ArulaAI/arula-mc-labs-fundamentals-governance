@@ -3,7 +3,7 @@
 Before reading `planner`'s guide-mode output:
 
 **Predict:** will it recommend anything that overlaps with F1/F2 (already fixed) instead of
-staying focused on the genuinely open backlog (F7, F9, F10)?
+staying focused on the genuinely open backlog (F7, F9, F10, F11)?
 
 ## My prediction
 

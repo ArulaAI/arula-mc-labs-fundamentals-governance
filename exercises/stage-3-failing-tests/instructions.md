@@ -8,11 +8,46 @@ code.
 1. Direct-prompt Claude Code:
    ```text
    Write JUnit 5 tests asserting the INTENDED behavior:
-   - no authorization code or PAN/CVV appears in any sink (response body, header, log,
-     audit file) for a processed offline refund -- F1
-   - a retried refund with the same idempotencyKey returns a decline/409 and creates no
-     second record -- F2
+
+   - F1, LOGS ONLY: no authorization code appears in RefundService's log output --
+     neither the INFO success line nor the ERROR line in the catch block -- for an
+     offline refund. Use Spring Boot's OutputCaptureExtension (already available via
+     spring-boot-starter-test) with a CapturedOutput parameter; do not add a new
+     dependency for this.
+     Do NOT assert the offline RESPONSE body is scrubbed. The spec scopes
+     authorization-code nulling to ONLINE refund retrieval only, so the offline
+     response legitimately still carries it. Assert it is still present, to pin the
+     scope of the fix.
+
+   - F2: a retried refund with the same idempotencyKey returns a decline/409 and
+     creates no second record.
+
+   Build request objects with com.mc.pgs.refunds.support.RefundRequestFixtures --
+   do not hand-assemble the nested amounts/merchantOrder/wsApiSupport structure.
    Deterministic tests, follow existing conventions. Do not modify production code.
+   ```
+
+   **Why F1's slice is logs-only.** The spec's non-negotiable is precise: the authorization code
+   is nulled from retrieval responses **for online refunds**, unless the
+   return-authorization-data toggle is ON. Nothing asks the offline response to drop it. A test
+   asserting the offline response is scrubbed would still be red after a completely correct
+   fix — which is not "proving it's broken", it's proving the test wrong. (The online-path rule
+   is real and you will implement it in Stage 4 when you build `processOnlineRefund()`.) If
+   Claude Code volunteers that assertion anyway, notice it: generalising a real rule past its
+   stated scope is exactly the failure mode this stage exists to make visible.
+
+   **Writing the request.** The request shape is faithful to the real PGS contract, so it is
+   nested. `RefundRequestFixtures` gives you sensible defaults and only makes you state what
+   your test is actually about:
+
+   ```java
+   RefundRequest first = RefundRequestFixtures.offlineRefund().idempotencyKey("idem-1").build();
+   RefundRequest retry = RefundRequestFixtures.offlineRefund().idempotencyKey("idem-1").build();
+
+   // for a MockMvc test: the path constants and the JSON body are both there
+   mockMvc.perform(post(RefundRequestFixtures.PAYMENT_REFUND_PATH)
+           .contentType(APPLICATION_JSON)
+           .content(RefundRequestFixtures.offlineRefund().json()));
    ```
 2. Run `mvn test`. Confirm exactly the two new slices are red — everything else, including
    `BaselineTest`, stays green.

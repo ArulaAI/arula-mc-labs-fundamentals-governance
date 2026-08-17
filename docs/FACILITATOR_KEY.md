@@ -11,7 +11,7 @@ Stage 1 yield, and the documented Stage-4 fallback prompt.
 |---|---|---|---|---|---|
 | F1 | Authorization code and full refund record logged at INFO; raw request logged on failure | Critical | Sensitive data leak | `RefundService.java` | **Remediated** (target) |
 | F2 | No idempotency — a retried refund creates a second record; 409 never returned | Critical | Incorrectly solving the right problem | `RefundService.java` | **Remediated** (target) |
-| F3 | `voidRefund()` answers on `POST /void-refunds` — Void is explicitly out of scope | High | Correctly solving the wrong problem | `RefundController.java` | Registered, left `Open` |
+| F3 | `voidRefund()` answers on `POST /card-payments/{card_payment_gateway_id}/void` — Void is explicitly out of scope | High | Correctly solving the wrong problem | `RefundController.java` | Registered, left `Open` |
 | F4 | `PreRiskAssessmentClient` called — spec has no pre-risk-assessment step on this path | Medium | Hallucinated dependency | `PreRiskAssessmentClient.java` | Registered, left `Open` |
 | F5 | `REFUND_EXPIRY` privilege exists; the window's value is genuinely undefined in the spec pack | High | Unauthorised default if silently invented | `RefundPrivilege.java` | **Registered + escalated** — not the same status as backlog |
 | F6 | No gate checking `EXCESSIVE_REFUNDS` on the excessive-refund path | High | Missing privilege gate | `RefundService.java` | Registered — **live trap during Stage 4**, see below |
@@ -19,12 +19,16 @@ Stage 1 yield, and the documented Stage-4 fallback prompt.
 | F8 | Controller depends on `RefundRecordDao` directly; privilege check lives in the controller | High | Layering violation | `RefundController.java` | **Remediated, mechanically** — `ArchitectureIT` fails `mvn verify` until fixed |
 | F9 | Hardcoded downstream settlement-notify URL | Low (hygiene) | — | `RefundService.java` | Backlog |
 | F10 | No `@ControllerAdvice` — inconsistent error shape vs. Spring's default | Medium (hygiene) | — | `RefundController.java` | Backlog |
+| F11 | `RefundHealthIndicator` reports UP on `/actuator/health` without checking anything — a health endpoint that cannot fail | Low (hygiene) | — | `RefundHealthIndicator.java` | Backlog |
+| F12 | No `REFUNDS` privilege gate on the base refund path — a merchant with no privileges still gets a refund processed | High | Missing privilege gate | `RefundService.java` | Backlog |
+| F13 | No currency-match validation against the original transaction | Medium | Incorrectly solving the right problem | `RefundService.java` | Backlog |
+| F14 | No voided-target rejection — a VOIDED transaction can still be refunded | High | Incorrectly solving the right problem | `RefundService.java` | Backlog |
 
 **Only F1 and F2 are remediation targets this pass** (`.claude/lab.json` `targets`), plus
 building `processOnlineRefund()`. **F8 gets resolved too, but mechanically** — `mvn verify`
 genuinely will not go green until it's fixed, so participants don't have to find it by eye; the
 build finds it for them. F5 is registered and escalated, which is a *different* status from the
-plain backlog items (F3, F4, F6, F7, F9, F10) — a participant who lumps F5 in with ordinary
+plain backlog items (F3, F4, F6, F7 and F9–F14) — a participant who lumps F5 in with ordinary
 backlog, or worse, invents a default window value for it, has failed the lab's central lesson
 even if F1/F2/F8 are all correctly fixed.
 
@@ -32,21 +36,29 @@ even if F1/F2/F8 are all correctly fixed.
 
 ### F1 — Sensitive data leak
 
+**F1's scope on the offline path is LOGS ONLY. Two log lines, no response-body change.**
+
 - `RefundService.processOfflineRefund`: stop logging the full `RefundRecord` (which carries
   `authorizationCode` in cleartext) at INFO — log only non-sensitive identifiers
   (`transactionId`, `status`). Stop logging the raw `request` object in the failure-path
   `catch` block — log `transactionId` only there too.
+- **That is the whole fix.** The offline *response* legitimately still returns the
+  authorization code afterwards, and the reference solution does exactly that. Do not let a
+  participant (or a model) extend F1 into nulling the offline response — see the boxed note
+  under "Exact secure behaviors the Stage 3 tests must assert" for why that would make a
+  correct test permanently red.
 - **Trap to watch:** a participant who fixes the success-path log line but leaves the
   failure-path log line (or vice versa) has "correctly solved the wrong problem" — both sinks
   must be fixed, not just the first one found. `pr-reviewer` in fresh context should catch a
   partial fix; the documented fallback prompt below exists for the case where it doesn't on the
-  first pass.
-- This lab's F1 is deliberately broader than the one literal non-negotiable in the spec pack
-  (which is specifically about the authorization code being nulled from *online-refund
-  retrieval* unless a toggle is ON) — that specific rule is a separate acceptance criterion of
-  the `processOnlineRefund()` build task, not something F1's fix alone satisfies. Don't let a
-  participant think fixing F1's two log lines also means the online-path toggle behavior is
-  handled; it isn't, until they build it in the second half of Stage 4.
+  first pass. Note the two sinks are both **logs**; there is no third sink on this path (no
+  audit file exists in this codebase).
+- The one literal non-negotiable in the spec pack — the authorization code nulled from
+  *online-refund retrieval* unless the return-authorization-data toggle is ON — is a **separate
+  acceptance criterion of the `processOnlineRefund()` build task**, not something F1's fix
+  satisfies and not something F1's fix should reach into. Don't let a participant think fixing
+  F1's two log lines also means the online-path toggle behavior is handled; it isn't, until
+  they build it in the second half of Stage 4.
 
 ### F2 — Incorrectly solving the right problem (idempotency)
 
@@ -82,18 +94,83 @@ captured amount. If nobody on the team raises it, that's fine — it stays regis
 backlog, same as before. If a participant's build accidentally *does* handle it correctly,
 that's a bonus, not an expectation.
 
+### F12, F13, F14 — spec rules the shipped path simply never implements
+
+These three are seeded by **omission**, not by wrong code, and they are all in
+`RefundService.processOfflineRefund` (inline comments there name each one). All three are
+**backlog**: register them, do not fix them, and do not let them expand Stage 4's scope.
+
+| | The rule, from the spec pack | Why it is its own finding |
+|---|---|---|
+| F12 | "`REFUNDS` — required for all refunds"; error table: "Missing `REFUNDS` privilege -> Rejected (403)" | Distinct from **F6**. F6 is the `EXCESSIVE_REFUNDS` gate on the above-captured-amount path; F12 is the base gate that should reject *every* refund from a merchant without `REFUNDS`. A group that finds one often assumes it has found the other — worth separating out loud. |
+| F13 | "Currency must equal the original order currency"; error table: "Currency mismatch -> Rejected" | The inbound `paymentCurrency` is written straight to the record and never compared to anything. |
+| F14 | "Voided transactions cannot be refunded"; error table: "Target transaction voided -> Rejected" | Nothing looks up the target transaction's status, so a `VOIDED` record can be refunded. Note the irony worth pointing out: F3's out-of-scope Void endpoint will happily mark a record `VOIDED`, and nothing then stops it being refunded. |
+
+**Why these are easier finds than F5, and what that means for the Stage 1 yield.** Each one is
+a line in the spec with no counterpart in the code. Hand Claude Code the spec and ask it to
+compare rule-by-rule against `RefundService` and all three come out reliably. That is exactly
+what makes them *good* backlog findings and a *bad* proxy for skill — F5 remains the one that
+requires noticing what the spec does **not** say. If a group registers F12-F14 and misses F5,
+they have done the easy nine-tenths.
+
 ## Exact secure behaviors the Stage 3 tests must assert
 
-**Slice 1 (F1 — sensitive data), 2-3 tests:**
-- No `authorizationCode` value appears in the `RefundService` log output (INFO or ERROR level)
-  for a successful or failed offline refund.
-- No PAN, CVV, or authorization-code substring appears anywhere in the `/refunds/offline`
-  response body.
+**Slice 1 (F1 — sensitive data), 2-3 tests. LOGS ONLY on the offline path:**
+- No `authorizationCode` value appears in the `RefundService` **log output** (INFO level,
+  success path) for a processed offline refund.
+- No `authorizationCode` value, and no dump of the whole `RefundRequest`, appears in the
+  `RefundService` **log output** (ERROR level, `catch` block) for a failed offline refund.
+
+> **Do not have them assert the offline *response body* is scrubbed — it is not, and it should
+> not be.** The spec pack's non-negotiable is scoped precisely: the authorization code is nulled
+> out of retrieval responses **for online refunds**, unless the return-authorization-data toggle
+> is ON. Nothing in the spec asks the offline response to drop it, `RefundDecision.Approved`
+> carries it by design, and the reference solution
+> (`reference/RefundService.solved.java`) returns it on the offline path *after* a fully correct
+> F1 fix. Verified live, not reasoned about: booting the app and posting to
+> `POST /card-payments/{card_payment_gateway_id}/refunds` returns
+> `{"transactionId":...,"amountMinor":...,"authorizationCode":"AUTH-…"}`. A test written to
+> assert the offline response is scrubbed would stay **red forever** after the correct fix,
+> which directly contradicts this lab's own "red before, green after" promise. If a group's
+> Claude Code proposes that assertion, that is itself a good live teaching moment — the model
+> generalised a real rule past its stated scope.
+>
+> The online-path rule is real, and it is tested — but it belongs to the
+> `processOnlineRefund()` build task in Stage 4, not to F1's slice. See the note under F1 in
+> the remediation outline above.
+
+**How to assert on log output:** Spring Boot's `OutputCaptureExtension` — already on the
+classpath via `spring-boot-starter-test`, no new dependency, and the unknown-dependency guard
+should fire if anyone proposes adding a logging-test library instead:
+
+```java
+@ExtendWith(OutputCaptureExtension.class)
+class RefundLoggingTest {
+    @Test
+    void offlineRefundDoesNotLogTheAuthorizationCode(CapturedOutput output) {
+        RefundDecision decision = refundService.processOfflineRefund(
+                RefundRequestFixtures.offlineRefund().build());
+        String authCode = ((RefundDecision.Approved) decision).authorizationCode();
+        assertThat(output).doesNotContain(authCode);   // the log must not carry it
+        assertThat(authCode).isNotNull();              // the response legitimately still does
+    }
+}
+```
+
+That second assertion is worth insisting on: it pins the scope of the finding, so a participant
+who "fixes" F1 by nulling the field out of the offline response too breaks a test rather than
+quietly shipping an unrequested behaviour change.
 
 **Slice 2 (F2 — idempotency), 2-3 tests:**
-- A retried `POST /refunds/offline` with the same `idempotencyKey` is declined (mapped to 409),
-  not processed as a new refund.
+- A retried `POST /card-payments/{card_payment_gateway_id}/refunds` with the same
+  `idempotencyKey` is declined (mapped to 409), not processed as a new refund.
 - Exactly one `RefundRecord` exists for that `idempotencyKey` after two identical requests.
+
+Both slices should build their request objects with
+`com.mc.pgs.refunds.support.RefundRequestFixtures` rather than assembling the nested
+`amounts`/`merchantOrder`/`wsApiSupport` structure by hand — the contract shape is faithful to
+the real PGS API, which makes it verbose, and none of that verbosity is what Stage 3 is
+teaching.
 
 Both slices must be **red** before any Stage 4 fix, and **green** immediately after their
 corresponding slice is remediated. `ArchitectureIT` (F8) is *also* red at this checkpoint and
@@ -122,8 +199,10 @@ the off-convention `*IT` class via `-Dtest=`, never touching failsafe at all —
 ## Mandatory Stage 1→2 spot-check — the rubric cannot substitute for this
 
 `.claude/rubrics/finish-the-refund.rubric.yaml` checks that `RISK_REGISTER.md` looks like a
-real, table-shaped, ten-row register citing real filenames. It cannot check that a row was
-actually *investigated* rather than copied from this document's own F1–F10 table above (which
+real, table-shaped, fourteen-row register citing real filenames, with each finding on its own
+well-formed row (a single line crammed with every keyword now scores 64/130 — below the pass
+threshold — rather than the 122/130 it used to). It still cannot check that a row was
+actually *investigated* rather than copied from this document's own F1–F14 table above (which
 participants correctly have access to — `AGENTS.md` states the same table, since naming the
 findings is part of the teaching, not a secret). Confirmed directly: a fabricated-but-correctly-
 shaped register, assembled in a few minutes from `AGENTS.md`'s own content with zero real code
@@ -137,24 +216,88 @@ broken. This is exactly why "the facilitator's live spot-check is the actual bac
 rubric alone" is stated as a cross-lab principle, not lab-specific advice — treat the line below
 as a mandatory action, not optional colour:
 
-**Before a group moves from Stage 1 to Stage 2, pick 3 of their 10 `RISK_REGISTER.md` rows —
-mix a "Fix" target (F1 or F2) with at least one backlog item — and ask the group to show you the
-actual line(s) of code the row cites.** A group that found it themselves can do this in seconds
+**Before a group moves from Stage 1 to Stage 2, pick 3 of their 14 `RISK_REGISTER.md` rows —
+mix a "Fix" target (F1 or F2) with at least one backlog item, and prefer F5 or one of F12-F14 as
+the third — and ask the group to show you the actual line(s) of code the row cites.** For
+F12-F14 the honest answer is "there is no line, that's the point", so ask instead which line of
+the spec the code fails to honour; a group that found it can point at the spec in seconds. A group that found it themselves can do this in seconds
 and usually wants to, since they're proud of the catch. A group that copied the table cannot do
 this convincingly, and it surfaces immediately, before the group has invested another hour
 building on an unearned register. This costs under two minutes per group and is the only control
 in this lab that actually closes the gap the rubric structurally cannot.
 
+## Grading integrity — the two checks that run outside `/grade`
+
+`/grade` (and its plugin-free equivalent, `python3 .claude/scripts/grade_repo.py`) is fast and
+deterministic, and it is a backstop, not the whole control. Two further checks exist. Neither is
+scored; both are yours to run.
+
+### The F1 leak-reintroduction check — is their test a real test?
+
+```bash
+python3 .claude/scripts/anti_gaming_check.py
+```
+
+Run it after Stage 4. It copies the repo to a throwaway directory, **puts the F1 leak back**,
+and re-runs the group's own F1 test against it.
+
+- Test goes **red** with the leak restored -> the test genuinely detects the leak. Exit 0.
+- Test stays **green** with the leak restored -> the test never detected anything. Exit 1.
+
+This closes a gap nothing else can. A test that asserts nothing goes green after the fix exactly
+like a real one does, writes an identical `FIXES.md` row, and scores full marks. Verified
+directly during this build, not assumed: a class named `RefundLoggingTest` whose only assertion
+is `assertThat(true).isTrue()` passes `mvn test` on correctly-fixed code, and this check catches
+it while every content check misses it.
+
+**If it fails, do not just report the number.** Restore the leak in front of the group, run
+their test, and let them watch it stay green. Then ask what the test was for. That is a better
+two minutes than any amount of explaining, and it generalises past this lab: a test you have
+never seen fail is not evidence of anything.
+
+Pass `--test <ClassName>` if the group named their test something the auto-detection misses, and
+`--keep-temp` to inspect the mutated copy.
+
+### F5 seed integrity — did they escalate, or did they quietly default?
+
+This one **is** wired into the rubric, as part of the `f5-registered-and-escalated` criterion.
+The criterion is an `all_of:` of two things: the register row saying "escalated", **and**
+`seed_intact:f5-refund-expiry`, which asserts the `REFUND_EXPIRY` block in `RefundPrivilege.java`
+is byte-for-byte what shipped (fixture: `.claude/fixtures/f5-refund-expiry.json`, which also
+scans `application.yml` for a smuggled-in window value).
+
+Why it needed both halves: a participant who invents a 180-day window **and** writes a tidy
+"escalated" row used to score the full 8 points for doing precisely the thing the lab exists to
+prevent. Now they score zero for F5. Confirmed in `grade_repo.py --self-test`, which grades
+exactly that scenario.
+
+### What neither check closes, stated plainly
+
+A **fabricated** register — fourteen well-formed rows copied out of `AGENTS.md`'s own finding
+table with no code analysis behind them — still scores full marks. That is not fixable with
+more matching, because a correct row looks identical whether it was earned or copied. The
+mandatory Stage 1->2 spot-check above is the control for it. Treat it as load-bearing.
+
 ## What's realistic in Stage 1
 
-We do not expect all ten findings found unaided in 25 minutes. The honest shape:
+We do not expect all fourteen findings found unaided in 25 minutes, and **the 25-minute budget
+does not move** — the yield changes, the clock does not. The honest shape:
 
 - **~2 found with their own eyes**, before Claude Code is involved — submit the same refund
   twice (two records exist), open the log (authorization code in cleartext).
-- **~6-7 surfaced by Claude Code** when prompted for a file-by-file review.
+- **~9-10 surfaced by Claude Code** when prompted for a file-by-file review, and specifically
+  when prompted to compare the code against the spec. This number went up from ~6-7 when
+  F11-F14 were added, and the reason is worth knowing rather than guessing at: F12, F13 and F14
+  are straightforward spec-comparison findings — a rule is stated in
+  `specs/refunds-s2i-phase1.spec.md` and has no counterpart in `RefundService` — so they surface
+  reliably the moment a group hands Claude Code the spec alongside the code. F11 is similar,
+  one look at `RefundHealthIndicator`. None of them need more minutes; they need the right
+  prompt, which the stage's instructions already give. **F5 is the exception and stays the
+  exception** — it is a *silence* in the spec, not a mismatch with it, and no amount of
+  spec-vs-code comparison surfaces it.
 - **2-3 decoys deliberately surfaced and rejected** — e.g. "the H2 store is in-memory, this
   won't survive a restart" (true, but it's a lab fixture, not a finding), "no rate limiting on
-  `/refunds/offline`" (a real concern, but a different backlog item, not seeded here),
+  the refund endpoints" (a real concern, but a different backlog item, not seeded here),
   "`merchantId` isn't format-validated" (sounds sensible; the spec doesn't ask for it).
   Rejecting these takes the same muscle as finding F5.
 - **F5 is deliberately hard.** An AI review won't flag it — the code looks perfectly
