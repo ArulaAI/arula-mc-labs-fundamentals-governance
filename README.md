@@ -148,9 +148,12 @@ what is a labelled lab assumption — is recorded in
 
 ## Known limitations
 
-- Stack version pins in `pom.xml` (Spring Boot 3.5.14, Log4j2 2.25.4, ArchUnit 1.2.1, JaCoCo
-  0.8.12) are InRhythm defaults for lab reproducibility, not yet independently confirmed against
-  PGS's actual pinned versions — see the inline comment in `pom.xml`.
+- Stack version pins in `pom.xml`: Spring Boot 3.5.14, Log4j2 2.25.4, and ArchUnit 1.2.1 are now
+  confirmed against a real source (`pgs-example-claude-md-for-labs.md`'s "Our stack" section) —
+  `pgs-lab-spec-pack.md` alone is silent on tooling, but that's not the only real source, and this
+  repo's docs previously called all four pins unconfirmed without checking the other one. One real
+  gap remains: JaCoCo runs standalone here where the real stack names SonarQube for coverage — see
+  the inline comment in `pom.xml`.
 - This lab's endpoint shapes follow the real PGS contract: `POST
   /card-payments/{card_payment_gateway_id}/refunds` and `POST
   /card-payments/{card_payment_gateway_id}/card-captures/{card_transaction_gateway_id}/refunds`.

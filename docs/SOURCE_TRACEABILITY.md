@@ -113,7 +113,7 @@ pass, deliberately not fixed before a live cohort run):**
 | `.claude/scripts/anti_gaming_check.py` | **4 — ours** | Mutation-style check with no counterpart in any source. Closes a gap no content check can: whether the participant's F1 test detects anything |
 | `seed_intact:` / F5 byte-for-byte grading | **4 — ours** | Added because a register row alone cannot distinguish "escalated the gap" from "invented a value and also wrote a nice row" |
 | ArchUnit as a build-blocking gate | **4 — fixture** | Pedagogical: one finding must be caught by the build rather than by reading |
-| Stack version pins in `pom.xml` | **4 — InRhythm defaults** | Explicitly **not** confirmed against PGS's actual pinned versions. Self-disclosed in `pom.xml`'s own comment and in `README.md`'s known limitations. Do not present as PGS-confirmed |
+| Stack version pins in `pom.xml` | **3 — sourced, mostly confirmed** | Spring Boot 3.5.14, Log4j2 2.25.4, ArchUnit 1.2.1 match `pgs-example-claude-md-for-labs.md`'s "Our stack" section exactly (`pgs-lab-spec-pack.md` alone is silent on tooling, which is why this was previously called unconfirmed — the other source was never checked). One real gap: JaCoCo runs standalone where the real stack names SonarQube for coverage. See `pom.xml`'s own comment |
 | Java 17 language level on a Zulu 21 JDK | **4 — lab stack** | Consistent across `pom.xml`, `README.md` and `AGENTS.md`. Not a discrepancy: 17 is the language level, 21 is the runtime |
 | H2 in-memory store, plain JDBC | **4 — fixture** | Chosen to mirror PGS's no-ORM access pattern without needing a database on a lab machine. A seeded decoy in Stage 1 depends on participants correctly rejecting "this won't survive a restart" as a finding |
 

@@ -5,11 +5,19 @@
     <modelVersion>4.0.0</modelVersion>
 
     <!--
-    Version pins below (Spring Boot 3.5.14, Log4j2 2.25.4, ArchUnit 1.2.1, JaCoCo 0.8.12) are
-    InRhythm defaults chosen for lab reproducibility; they are NOT yet independently confirmed
-    against PGS's actual pinned versions. pgs-lab-spec-pack.md covers business logic only, not
-    build tooling. Confirm against PGS before Workshop 2 build sign-off; do not present these as
-    PGS-confirmed until then.
+    Version pins below, corrected: this comment previously overstated the gap. pgs-lab-spec-pack.md
+    covers business logic only, not build tooling, so it is silent here, but a separate real source,
+    pgs-example-claude-md-for-labs.md's own "Our stack" section (confirmed again in
+    pgs-epic-feature-story-examples.md), does specify the stack, and was never checked before this file's
+    comment called these "not yet independently confirmed."
+
+    Confirmed MATCHING the real source exactly: Spring Boot 3.5.14, Log4j2 2.25.4, ArchUnit 1.2.1.
+    One real, still-open gap, not a blanket "unconfirmed": JaCoCo 0.8.12 runs standalone here, while
+    the real stack names SonarQube for coverage (JaCoCo is what SonarQube typically ingests under the
+    hood, so this is plausibly a lab-environment substitution for having no SonarQube server, not a
+    wrong tool choice, but not confirmed either way). Spotless (code formatting), also named in the
+    real stack, is not used in this lab at all. (This repo does not use PITest, see arula-mc-labs-3's
+    lab-refunds/pom.xml for the PITest version note, which does apply there.)
     -->
     <parent>
         <groupId>org.springframework.boot</groupId>
