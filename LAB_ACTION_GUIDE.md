@@ -40,9 +40,10 @@ the `planner` subagent directly by name; Stage 4 invokes `pr-reviewer` directly 
 exact prompt text for every stage lives in `exercises/stage-<n>-<name>/instructions.md`; this
 guide won't repeat it in full.
 
-**If a command isn't recognized:** confirm the `workbench` plugin is actually installed — from a
-local clone, not a marketplace (`claude plugin install ./arula-mc-labs-plugin/workbench`, see
-README.md) — and that Claude Code is open at the repo root.
+**If a command isn't recognized:** confirm the `workbench` plugin is actually installed — via its
+private marketplace (`claude plugin marketplace add https://github.com/ArulaAI/arula-mc-labs-plugin`
+then `claude plugin install workbench@mastercard-workbench`, see README.md) — and that Claude Code
+is open at the repo root.
 
 ## The flow at a glance
 

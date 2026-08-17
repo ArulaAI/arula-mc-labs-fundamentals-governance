@@ -14,18 +14,22 @@ trail a reviewer who wasn't in the room could trust.
 ## Prerequisites
 
 - JDK 17 (Zulu recommended), Maven 3.9+
-- Claude Code, **latest version** — this lab depends on the `workbench` plugin, whose own
-  `docs/ARCHITECTURE.md` requires 2.1.177+ for component auto-discovery. No floor to manage
-  below that; just stay current.
-- The `workbench` plugin, installed from a local clone, not a marketplace. Confirmed against the
-  plugin repo's own commit history: its maintainer deliberately removed the marketplace directory
-  ("workbench is a private plugin... not intended for any public Claude plugin marketplace") and
-  its `workbench/README.md` documents the real install path instead:
+- Claude Code — teach on whatever version the client actually runs; don't require an upgrade.
+  Live-tested this pass on both 2.1.108 and 2.1.234: the plugin installs, lists as enabled, and
+  validates cleanly on both.
+- The `workbench` plugin, installed via a small **private** marketplace (not published anywhere
+  public) that ships in the plugin repo itself:
   ```
-  git clone https://github.com/ArulaAI/arula-mc-labs-plugin
-  claude plugin install ./arula-mc-labs-plugin/workbench
-  claude plugin validate ./arula-mc-labs-plugin/workbench   # optional sanity check
+  claude plugin marketplace add https://github.com/ArulaAI/arula-mc-labs-plugin
+  claude plugin install workbench@mastercard-workbench
   ```
+  No clone needed just for the plugin — `marketplace add` fetches the repo directly. Confirmed
+  live, both commands, on 2.1.108 and 2.1.234 identically. (The bare local-path install this repo
+  used to document, `claude plugin install ./workbench`, fails on both versions with "not found
+  in any configured marketplace" — that's not new CLI drift, it never worked that way on either
+  version tested; the marketplace step above is required, not optional.) One version-specific
+  wrinkle: `plugin install`'s `-y` flag exists on 2.1.234 but not on 2.1.108 — omit it; the plain
+  command works fine without it on both.
 - `~/.m2` pre-warmed before session day — this service makes no outbound network calls at
   *runtime*, but the first `mvn verify` on a cold `~/.m2` resolves dependencies over the network
   like any Maven build

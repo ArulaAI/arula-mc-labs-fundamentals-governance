@@ -14,14 +14,16 @@ facilitator-only answer key in [docs/FACILITATOR_KEY.md](docs/FACILITATOR_KEY.md
 
 ## Prerequisites
 
-- Claude Code, latest version (this repo depends on the `workbench` plugin, which requires
-  2.1.177+ per its own `docs/ARCHITECTURE.md` — no floor to manage below that, build against
-  latest).
-- The `workbench` plugin, installed from a local clone, not a marketplace — confirmed via the
-  plugin repo's own commit history (`3dd7841`, "workbench is a private plugin... not intended for
-  any public Claude plugin marketplace") and its `workbench/README.md`:
-  `git clone https://github.com/ArulaAI/arula-mc-labs-plugin`, then
-  `claude plugin install ./arula-mc-labs-plugin/workbench`.
+- Claude Code — teach on whatever version the client actually runs, don't require an upgrade.
+  Live-tested on both 2.1.108 and 2.1.234 this pass: plugin installs, lists enabled, and
+  validates clean on both.
+- The `workbench` plugin, installed via its own small private marketplace (not published
+  anywhere public): `claude plugin marketplace add https://github.com/ArulaAI/arula-mc-labs-plugin`,
+  then `claude plugin install workbench@mastercard-workbench`. No clone needed just for this.
+  The bare local-path install this doc used to recommend fails identically on both 2.1.108 and
+  2.1.234 ("not found in any configured marketplace") — confirmed live, not assumed; the
+  marketplace step is required on every version tested, not a newer-CLI-only fix. Omit `-y` on
+  the install command — that flag doesn't exist on 2.1.108.
 - JDK 17 (Zulu recommended), Maven 3.9+. `~/.m2` should be pre-warmed on lab machines before
   session day.
 
