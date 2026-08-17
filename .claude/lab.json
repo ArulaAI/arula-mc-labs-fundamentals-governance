@@ -1,6 +1,18 @@
 {
+  "lab": 1,
+  "title": "Finish the Refund -- Foundations, Governance and the Five Failure Modes",
   "id": "finish-the-refund",
   "targets": ["F1", "F2"],
   "rubric": ".claude/rubrics/finish-the-refund.rubric.yaml",
+  "journey_session": "lab-1-learner-id",
+  "objectives": [
+    "harness-confirmed",
+    "risk-register-sixteen-rows",
+    "f1-fixed-with-review",
+    "f2-fixed-with-review",
+    "f8-resolved",
+    "workflow-tracker-complete",
+    "no-pan-in-journey"
+  ],
   "minutes": 120
 }

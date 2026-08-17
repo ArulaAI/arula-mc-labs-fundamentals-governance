@@ -4,9 +4,18 @@ description: Close out the current lab stage — summarize what was done and app
 disable-model-invocation: true
 ---
 
-Close out the current lab stage. There is no `/hand-off` command in the `workbench` plugin
-itself (it ships `/journey start|stop|export`, which is a different concept — session-wide
-journey capture, not a per-stage narrative record) — this command is this lab's own.
+Close out the current lab stage. As of workbench plugin 0.2.0, the plugin now also ships its own
+`hand-off` command — but Claude Code resolves project-local commands (`.claude/commands/`) ahead
+of plugin-provided ones of the same name, so this project-local version is what actually runs
+when a learner types `/hand-off`; the plugin's version is silently shadowed, with no warning
+either way. This override is deliberate and load-bearing, not stale: the plugin's own hand-off
+prompt writes a generic `## Stage <n> — <stage name>` / Closed / Artifacts / Verdict / Human gate
+/ Open items / Next step template, which does not reliably name this lab's specific artifacts
+(`RISK_REGISTER.md`, `plan.md`, `FIXES.md`, `secure-features-guide.md`, `SECURITY.md`) the way
+the format below is built to. If the plugin's `/hand-off` is ever preferred instead, this file
+must be removed or renamed first (see Claude Code's command-resolution precedence) and the
+`hand-off-not-templated`/`workflow-tracker-complete` rubric checks re-verified against whatever
+it actually writes.
 
 Do the following, in order:
 

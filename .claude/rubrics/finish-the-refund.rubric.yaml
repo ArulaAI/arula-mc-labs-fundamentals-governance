@@ -46,9 +46,18 @@
 # built to catch. This is a real code-state check, not another keyword regex, which is why it
 # is worth adding where more content-matching was not.
 #
-# Grader: `/grade` runs the plugin's lab-grader. If the plugin is not installed, run
-# `python3 .claude/scripts/grade_repo.py` from the repo root -- same rubric, same checks, same
-# deterministic score. That script's `--self-test` grades synthetic empty / populated /
+# Grader: run `python3 .claude/scripts/grade_repo.py` from the repo root. This is the
+# authoritative grader for this rubric, not a fallback -- checked directly against the workbench
+# plugin's actual `skills/lab-grader/scripts/grader.py` (as of plugin 0.2.0): that script only
+# implements four check types (`event_exists`, `event_contains`, `event_count_gte`,
+# `secret_scan_clean`), none of which cover the file-content checks this rubric depends on
+# (`file_table_rows_gte`, `file_table_row_contains_all`, `all_of`, `seed_intact`,
+# `file_contains_all_uncommented`, `file_sections_nonempty`, etc.). Running the plugin's own
+# `/grade` command against this rubric will silently score every such criterion 0 regardless of
+# what the participant did -- confirmed by reading the plugin's grader.py directly, not assumed.
+# `grade_repo.py` reimplements the full check-type set this rubric actually uses and is what
+# `/grade` should be pointed at (or invoked as a manual fallback) until the plugin's own grader
+# supports content-based checks. That script's `--self-test` grades synthetic empty / populated /
 # crammed / F5-defaulted repos and asserts this rubric actually discriminates between them.
 #
 # Findings F1-F16 are seeded. F1/F2 are the remediation targets, F8 is forced by the build,

@@ -263,11 +263,12 @@ this convincingly, and it surfaces immediately, before the group has invested an
 building on an unearned register. This costs under two minutes per group and is the only control
 in this lab that actually closes the gap the rubric structurally cannot.
 
-## Grading integrity — the two checks that run outside `/grade`
+## Grading integrity — the two checks that run outside `grade_repo.py`
 
-`/grade` (and its plugin-free equivalent, `python3 .claude/scripts/grade_repo.py`) is fast and
-deterministic, and it is a backstop, not the whole control. Two further checks exist. Neither is
-scored; both are yours to run.
+`python3 .claude/scripts/grade_repo.py` (**not** the plugin's own `/grade` — its `lab-grader`
+skill doesn't support this rubric's content checks; see `AGENTS.md`/the rubric's own header
+comment) is fast and deterministic, and it is a backstop, not the whole control. Two further
+checks exist. Neither is scored; both are yours to run.
 
 ### The F1 leak-reintroduction check — is their test a real test?
 
