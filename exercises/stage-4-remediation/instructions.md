@@ -39,8 +39,9 @@ trap fires here.
      the unknown-dependency check should flag it); an offer to write the settlement leg (out of
      scope, decline it); a naive build that skips the `EXCESSIVE_REFUNDS` check (reproduces F6
      live — note it, it's still backlog, not a new fix target).
-6. Update `RISK_REGISTER.md` (status changes for F1, F2, F8) and `FIXES.md` (one row per fix,
-   with the `pr-reviewer` verdict).
+6. Update `RISK_REGISTER.md` (status changes for F1, F2, F8) and `FIXES.md` — fill in the
+   existing table (don't replace it with prose; `grade_repo.py` reads actual table rows), one
+   row per fix, with the `pr-reviewer` verdict.
 
 ## Acceptance criteria
 

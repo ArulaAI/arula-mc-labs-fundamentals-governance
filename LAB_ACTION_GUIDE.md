@@ -110,8 +110,9 @@ exists to catch is *accepting a fix unread because you already believe it works*
   build that skips the `EXCESSIVE_REFUNDS` check reproduces F6 live. Update `RISK_REGISTER.md`
   and `FIXES.md`.
 - **Stage 5 — Look ahead.** `planner` in guide mode writes `docs/secure-features-guide.md` —
-  proactive controls grounded in this codebase (correlation IDs, tokenisation, config
-  externalisation, deny-by-default validation, `@ControllerAdvice`). No code changes.
+  proactive controls grounded in this codebase (correlation IDs, the dead-weight
+  `ENABLE_REFUND_REQUESTS`/`SUPPORT_EXTENDED_REFUNDS` privileges, config externalisation,
+  deny-by-default validation, `@ControllerAdvice`). No code changes.
 - **Stage 6 — Close.** Run `mvn verify` — quality gates including ArchUnit, plus sensitive-data
   and secret scans. Finish `SECURITY.md`, confirm every stage has a `/hand-off` entry in
   `docs/workflow-tracker.md` citing its actual artifact, then `python3 .claude/scripts/grade_repo.py`

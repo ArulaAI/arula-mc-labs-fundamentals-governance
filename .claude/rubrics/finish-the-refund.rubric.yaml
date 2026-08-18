@@ -181,7 +181,7 @@ criteria:
   - id: secure-features-guide
     description: "docs/secure-features-guide.md written, naming concrete next controls"
     max_score: 5
-    check: "file_contains_all:docs/secure-features-guide.md:correlation,tokenisation"
+    check: "file_contains_all:docs/secure-features-guide.md:correlation,ENABLE_REFUND_REQUESTS"
 
   # --- Close: audit trail complete, PAN-clean, security posture documented ---
   #

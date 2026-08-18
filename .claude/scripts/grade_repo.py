@@ -397,7 +397,14 @@ def run_check(spec: str, repo: Repo) -> tuple[bool, str]:
             if len([c for c in cells if c]) < MIN_REGISTER_CELLS:
                 saw_keywords_but_crammed = True
                 continue
-            ids = set(_FINDING_ID.findall(row.upper()))
+            # Only the ID column (cells[0]) counts toward "how many findings does this row
+            # claim" -- a row legitimately about one finding is allowed to *mention* another
+            # finding ID elsewhere (e.g. "distinct from F6, which is..."), and that cross-
+            # reference must not be mistaken for the row claiming both. Found and fixed live:
+            # the original check scanned the whole row, so honest cross-referencing prose in
+            # any column tripped the same "crammed" rejection a real multi-finding row would.
+            id_cell = cells[0] if cells else ""
+            ids = set(_FINDING_ID.findall(id_cell.upper()))
             if len(ids) > 1:
                 saw_keywords_but_crammed = True
                 continue
@@ -652,7 +659,8 @@ def self_test(real_root: str, rubric_path: str) -> int:
                "| F2 | idempotency | RefundService.java | RefundIdempotencyTest | PASS | today |\n"
                "| F8 | ArchUnit layering resolved | RefundController.java | ArchitectureIT | PASS | today |\n")
         _write(tmp, "docs/secure-features-guide.md",
-               "# Guide\n\n- correlation IDs end to end\n- tokenisation of stored identifiers\n")
+               "# Guide\n\n- correlation IDs end to end\n"
+               "- wire up or remove the dead-weight ENABLE_REFUND_REQUESTS privilege\n")
         _write(tmp, "SECURITY.md",
                "# Security\n\nControls: F1, F2, F8.\nF5 is escalated, not defaulted.\n")
         tracker = ["# Workflow tracker\n"]
