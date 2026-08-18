@@ -49,7 +49,7 @@ trap fires here.
 - [ ] F8 resolved — `mvn verify` no longer fails on ArchUnit
 - [ ] `processOnlineRefund()` built, honouring the toggle and the authorization-code rule, no
       settlement records written
-- [ ] F3, F4, F5, F6, F7 and F9–F14 untouched — still exactly as registered in
+- [ ] F3, F4, F5, F6, F7 and F9–F16 untouched — still exactly as registered in
       `RISK_REGISTER.md`
 - [ ] No new dependency introduced without confirming it exists
 

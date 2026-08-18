@@ -8,7 +8,8 @@ grade.
 ## Done means
 
 - `mvn verify` fully green (ArchUnit, tests, JaCoCo report)
-- `SECURITY.md`: Security Controls (F1, F2, F8) and Known Risks (F3, F4, F6, F7, F9–F14)
+- `SECURITY.md`: Security Controls (F1, F2, F8) and Known Risks (F3, F4, F6, F7, F9–F16)
   complete, F5 explicitly marked escalated in its own row
 - `docs/workflow-tracker.md`: 7 stage entries, each citing a distinct real artifact filename
-- `/grade` run and its per-criterion breakdown reviewed
+- `grade_repo.py` run and its per-criterion breakdown reviewed (not the plugin's own `/grade` —
+  it doesn't understand this rubric's content checks)

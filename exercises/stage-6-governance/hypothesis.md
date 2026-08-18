@@ -1,6 +1,7 @@
 # Stage 6 — Hypothesis
 
-Before running `/grade`:
+Before running `python3 .claude/scripts/grade_repo.py` (not the plugin's own `/grade` — it
+doesn't understand this rubric's content checks):
 
 **Predict:** your overall percentage, and whether you think every content check will pass —
 specifically the F5-escalation check, since that's the one most groups get structurally wrong
