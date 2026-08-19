@@ -127,26 +127,90 @@ the ones you plan to fix.
 **Action.**
 
 1. **First, with your own eyes, no AI.**
-   - Start the app: `mvn spring-boot:run`. Submit the same
-     `POST /card-payments/cpg-1001/refunds` request twice with the same `idempotencyKey` — two
-     records exist instead of one 409.
-   - Open the application log — the authorization code appears in cleartext.
-   - Try `POST /card-payments/cpg-1001/void` — it answers, and per `specs/OUT_OF_SCOPE.md`, it
-     shouldn't exist at all.
+   - Start the app: `mvn spring-boot:run`. It runs in the foreground and streams logs — open a
+     **second terminal** in the same repo for the requests below; don't close the first one, you
+     need to watch its log output in step 2.
+   - Submit the same refund request twice, with the same `idempotencyKey`, from the second
+     terminal:
+     ```bash
+     curl -s -X POST http://localhost:8080/card-payments/cpg-1001/refunds \
+       -H "Content-Type: application/json" \
+       -d '{
+         "merchantWsApiId": "merchant-0001",
+         "paymentCurrency": "USD",
+         "amounts": { "transactionAmount": 2500 },
+         "merchantOrder": { "transactionReference": "ref-0001" },
+         "wsApiSupport": {
+           "transactionWsApiId": "txn-0001",
+           "orderWsApiId": "order-0001",
+           "wsApiVersion": "1.0",
+           "targetTransactionWsApiId": null,
+           "refundAuthorization": null
+         },
+         "idempotencyKey": "idem-demo-1",
+         "merchantPrivileges": ["REFUNDS"]
+       }' | jq
+     ```
+     Run that exact command a second time, unchanged. Expected: two `200 OK` responses, each with
+     a **different** `authorizationCode` — two records, not one 409 on the retry.
+   - Switch to the first terminal (still running `mvn spring-boot:run`) and look at the log —
+     you'll see two `INFO ... Processed offline refund: ...` lines, each showing the
+     `authorizationCode` (`AUTH-...`) in cleartext.
+   - Back in the second terminal, try void — it shouldn't exist at all per
+     `specs/OUT_OF_SCOPE.md`:
+     ```bash
+     curl -s -X POST http://localhost:8080/card-payments/cpg-1001/void \
+       -H "Content-Type: application/json" \
+       -d '{
+         "merchantWsApiId": "merchant-0001",
+         "paymentCurrency": "USD",
+         "amounts": { "transactionAmount": 2500 },
+         "merchantOrder": { "transactionReference": "ref-0001" },
+         "wsApiSupport": {
+           "transactionWsApiId": "txn-0001",
+           "orderWsApiId": "order-0001",
+           "wsApiVersion": "1.0",
+           "targetTransactionWsApiId": null,
+           "refundAuthorization": null
+         },
+         "idempotencyKey": "idem-void-1",
+         "merchantPrivileges": ["REFUNDS"]
+       }' | jq
+     ```
+     Expected: a `200 OK` with a full refund record back, `"status": "VOIDED"`. Note: it looks up
+     the record by `transactionId`, not `idempotencyKey` — so the `idempotencyKey` you send here
+     is ignored, and you'll see the *original* refund's `idempotencyKey` (`idem-demo-1`) echoed
+     back in the response, not `idem-void-1`. That's expected too; the point of this check is that
+     the endpoint answers at all, not its internal lookup key.
+   - `Ctrl+C` the first terminal to stop the app once all three checks are done.
 2. Read `specs/refunds-s2i-phase1.spec.md` and `specs/OUT_OF_SCOPE.md` in full.
-3. **Then** direct-prompt Claude Code:
+3. **Then** direct-prompt Claude Code — this prompt does two passes in one: a comprehension
+   table, then an explicit check against the spec's own business rules. That second half is what
+   surfaces spec-level findings (like the missing `EXCESSIVE_REFUNDS` gate) that reading the code
+   alone won't show you:
    > "Review these files together: `RefundController.java`, `RefundService.java`,
    > `RefundPrivilege.java`, `PreRiskAssessmentClient.java`, `RefundRecordDao.java`,
    > `RefundHealthIndicator.java`. For each file return a table: file | responsibility | key
-   > dependencies | hidden side effects. Do not suggest fixes. Do not create the risk register
-   > yet."
-4. **Triage what comes back.** Confirm the real findings, reject anything plausible-but-out-of-
-   scope with a stated reason (a couple of decoys are seeded on purpose), rank by severity.
-5. Fill `RISK_REGISTER.md`, one row per finding, all sixteen, including backlog. Cite the actual
-   affected file for each row — a placeholder won't score.
-6. **F5 is deliberately hard.** Look specifically at `RefundPrivilege.java` and the spec's
-   privilege section. Don't move on until your group has explicitly decided whether it found F5
-   or not — if not, your facilitator reveals it at the debrief.
+   > dependencies | hidden side effects. Then separately, compare the code against every
+   > business rule in `specs/refunds-s2i-phase1.spec.md`, rule by rule, and flag any rule the
+   > code does not appear to satisfy. Do not suggest fixes. Do not create the risk register yet."
+4. **Read what comes back once, don't audit it against a checklist you don't have.** A realistic
+   first pass surfaces roughly 11-12 of the sixteen findings this way, on top of the two or three
+   you already found unaided in step 1 — that's the expected yield, not a shortfall to go hunting
+   for. Reject anything that sounds plausible but is actually out of scope, with a stated reason
+   (a couple of decoys are seeded on purpose) — that's real triage, a five-second gut check per
+   row, not a re-read of the code.
+5. **Write the register.** Hand the finished review straight to Claude Code:
+   > "Write `RISK_REGISTER.md` as a table: ID | Name | Severity | Failure mode | Affected files |
+   > Impact | Status, using everything from the review above. Mark `REFUND_EXPIRY` 'Escalated,
+   > value undefined in spec, not defaulted,' never invent a number for it. All Status = Open."
+6. **The one thing worth a manual glance, not a full audit.** Open the finished file and confirm
+   the `REFUND_EXPIRY` row actually says escalated, not a made-up window value — that's the one
+   spot an AI under pressure to look complete might quietly invent an answer instead of admitting
+   the spec left it blank. If your group's table is short of the sixteen after this (some groups
+   miss `EXCESSIVE_REFUNDS`, F6, since it's a spec-only rule with no visible code symptom yet, or
+   F7's missing correlation ID, an absence rather than a wrong line), that's a normal gap to close
+   at the Stage 1 debrief, not something to have caught yourselves mid-stage.
 
 **Artifact.** `RISK_REGISTER.md`, all sixteen rows.
 
@@ -169,14 +233,19 @@ stated explicitly, not silently skipped.
 **Objective.** An ordered remediation plan, Critical first, scoped to exactly F1, F2, and building
 `processOnlineRefund()` — nothing else.
 
-**Surface.** The `planner` subagent, invoked directly by name.
+**Surface.** The `planner` subagent. **Say so explicitly in the prompt** — confirmed live this
+pass that leaving it implicit (just describing the task) does not reliably trigger the subagent;
+Claude Code will happily do the work itself in-session instead, which defeats the point of a
+plan produced independently of the register you just wrote. After running the prompt below, ask
+"did you use the planner subagent for that?" — if the answer is no, ask it to redo the same
+prompt with the subagent explicitly invoked.
 
 **Prompt.**
 
-> "Using `RISK_REGISTER.md` and `specs/refunds-s2i-phase1.spec.md`, produce a remediation plan
-> scoped to F1 and F2 plus building `processOnlineRefund()`. For each step: target file(s),
-> one-line fix or build task, expected post-fix state, success criterion. Critical first. Save to
-> `docs/plans/plan.md`."
+> "Using the planner subagent: using `RISK_REGISTER.md` and `specs/refunds-s2i-phase1.spec.md`,
+> produce a remediation plan scoped to F1 and F2 plus building `processOnlineRefund()`. For each
+> step: target file(s), one-line fix or build task, expected post-fix state, success criterion.
+> Critical first. Save to `docs/plans/plan.md`."
 
 **Artifact.** `docs/plans/plan.md`.
 
@@ -252,21 +321,86 @@ confirming the red state.
 
 **Action.**
 
-1. Fix F1 with the smallest diff. Validate. Send it through a fresh-context `pr-reviewer` pass —
-   one that never saw the fix get written.
-2. Fix F2 the same way.
+1. **Fix F1.** Three separate steps, not one, run them in order:
+
+   **(a) Fix prompt** — normal, direct-prompt Claude Code, no subagent yet:
+   ```
+   Fix F1: the INFO log line in RefundService.processOfflineRefund() logs the full
+   RefundRecord, which includes the authorization code. Change it to log only non-sensitive
+   fields (transactionId, amountMinor, status), excluding authorizationCode entirely.
+   Smallest possible diff, don't touch anything else in this method.
+   ```
+
+   **(b) Validate it yourself:**
+   ```bash
+   mvn test
+   ```
+   Confirm `RefundServiceLoggingTest.offlineRefund_successLine_doesNotLogAuthorizationCode`
+   (red since Stage 3) is now green, and nothing else broke.
+
+   **(c) Review prompt** — only after (a) and (b), word for word, subagent named explicitly:
+   ```
+   Using the pr-reviewer subagent: review my fix to F1 against coding-standards.md. You did
+   not write this code and have no knowledge of how it was written. Return PASS or FAIL with
+   specific findings.
+   ```
+   **Do not just ask "did I get this right" in the same conversation** — that's self-review,
+   not the fresh-context review this stage is built to teach.
+
+   **(d) Confirm the subagent actually ran:**
+   ```
+   Did you use the pr-reviewer subagent for that?
+   ```
+   A "yes, looks good" answer from the same conversation that wrote the fix isn't this step, no
+   matter how confident it sounds.
+
+2. **Fix F2, same four sub-steps, same order:**
+
+   **(a) Fix prompt:**
+   ```
+   Fix F2: add the missing idempotency check to RefundService.processOfflineRefund().
+   refundRecordDao.findByIdempotencyKey() already exists and is ready to use, it just has no
+   caller yet. Look up the idempotency key before inserting; if a record already exists,
+   return a 409 decline instead of inserting a second record. Smallest possible diff.
+   ```
+
+   **(b) Validate:**
+   ```bash
+   mvn test
+   ```
+   Confirm `RefundServiceIdempotencyTest` is now green.
+
+   **(c) Review prompt:**
+   ```
+   Using the pr-reviewer subagent: review my fix to F2 against coding-standards.md. You did
+   not write this code and have no knowledge of how it was written. Return PASS or FAIL with
+   specific findings.
+   ```
+
+   **(d) Confirm:** `Did you use the pr-reviewer subagent for that?`
 3. `mvn verify` will still fail on ArchUnit until F8 is addressed — move the
    privilege-evaluation logic out of `RefundController` into `RefundService`. You don't have to
    hunt for this by eye; the build tells you.
-4. Build `processOnlineRefund()`: honour `TOGGLE_ENABLE_ONLINE_REFUND`, null the authorization
-   code from retrieval unless the return-authorization-data toggle is ON (online refunds only —
-   the offline response legitimately still returns it), do **not** write settlement records.
-   Online-vs-offline is selected by the request body's `wsApiSupport.refundAuthorization`, not a
-   separate URL.
-5. **Watch the traps:** a PAN-masking-library request should fail the unknown-dependency check;
-   an offer to write the settlement leg should be declined; a naive build that skips the
-   `EXCESSIVE_REFUNDS` check reproduces F6 live — note it, it's still backlog, not a new fix
-   target.
+4. **Build `processOnlineRefund()`.** Run this prompt:
+   ```
+   Build processOnlineRefund() in RefundService, replacing the current
+   UnsupportedOperationException. Follow the spec: honour the TOGGLE_ENABLE_ONLINE_REFUND
+   feature toggle. For online refunds, null the authorization code from the response unless
+   the return-authorization-data-to-merchants toggle is explicitly ON, the offline path is
+   unaffected and should keep returning the code as it does today. Do not write any
+   settlement record, that leg is downstream and out of scope. Online vs offline is selected
+   by the request body's wsApiSupport.refundAuthorization field, not a separate URL or
+   endpoint. Follow this file's existing conventions and use RefundRequestFixtures for any
+   new tests.
+   ```
+   Validate: `mvn verify` — should pass everything now, including ArchUnit from step 3.
+5. **Watch the traps** — not a prompt, a review of what step 4 produced:
+   - Check the diff for any new dependency (`pom.xml`). A PAN-masking-library request should
+     fail the unknown-dependency check on its own — if it doesn't, reject the addition yourself.
+   - Confirm no settlement record gets written anywhere in the new code; decline it if offered.
+   - Check whether it implemented an `EXCESSIVE_REFUNDS` check or not — either outcome is fine,
+     this isn't something to instruct for or against. If it's skipped, that's F6 reproduced live,
+     as designed — note it, don't ask for the check now, it's backlog, not a Stage 4 target.
 6. Update `RISK_REGISTER.md` (status changes for F1, F2, F8) and `FIXES.md` — fill in the
    existing table (don't replace it with prose; `grade_repo.py` reads actual table rows), one row
    per fix, with the `pr-reviewer` verdict.
@@ -292,15 +426,16 @@ to spec; `FIXES.md` has a real table row per fix with a recorded reviewer verdic
 
 **Objective.** Name what's next without doing it. No code changes this stage.
 
-**Surface.** `planner`, in guide mode.
+**Surface.** `planner`, in guide mode. Same rule as Stage 2: name the subagent explicitly in the
+prompt, don't rely on the task description alone to trigger it.
 
 **Prompt.**
 
-> "Write `docs/secure-features-guide.md` describing proactive controls to adopt next, grounded in
-> this codebase: correlation IDs end to end, wiring up or removing the dead-weight
-> `ENABLE_REFUND_REQUESTS`/`SUPPORT_EXTENDED_REFUNDS` privileges, config externalisation for the
-> settlement-notify URL, deny-by-default validation, and structured error handling via
-> `@ControllerAdvice`. No code changes."
+> "Using the planner subagent, in guide mode: write `docs/secure-features-guide.md` describing
+> proactive controls to adopt next, grounded in this codebase: correlation IDs end to end, wiring
+> up or removing the dead-weight `ENABLE_REFUND_REQUESTS`/`SUPPORT_EXTENDED_REFUNDS` privileges,
+> config externalisation for the settlement-notify URL, deny-by-default validation, and
+> structured error handling via `@ControllerAdvice`. No code changes."
 
 **Artifact.** `docs/secure-features-guide.md`.
 
