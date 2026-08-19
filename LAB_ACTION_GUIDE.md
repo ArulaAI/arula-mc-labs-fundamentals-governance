@@ -1,4 +1,4 @@
-# Lab 1 — Finish the Refund
+# Lab 1: Finish the Refund
 
 **Thread:** `G1190-3291` Support Refunds for S2I transactions, Phase 1 (Processing domain) ·
 **Level:** 100 → 200 · **Duration:** 120 minutes · **Topology:** one repo, the real PGS contract
@@ -7,21 +7,21 @@
 
 ## The scenario
 
-A squad member got the offline refund path working — tests green, build clean — then got pulled
+A squad member got the offline refund path working (tests green, build clean), then got pulled
 onto a Sev-2 before finishing the harder case. The online path is still an
 `UnsupportedOperationException`. You inherit the file. It merges Thursday. Nothing in the diff
-looks wrong — that's exactly the problem: this one file carries sixteen real governance findings,
+looks wrong. That's exactly the problem: this one file carries sixteen real governance findings,
 traced to the real PGS spec pack, that a passing build will never show you.
 
 **Your role:** the engineer finishing the inherited file, with an AI assistant as your pair.
 
 **What you are building:** two findings fixed by hand under fresh-context review, one finding
-caught mechanically by the build (F8's layering violation — you don't hunt for it, `mvn verify`
-tells you), and `processOnlineRefund()` built from scratch to spec — the feature toggle honoured,
+caught mechanically by the build (F8's layering violation; you don't hunt for it, `mvn verify`
+tells you), and `processOnlineRefund()` built from scratch to spec: the feature toggle honoured,
 the authorization code correctly nulled on retrieval, no settlement record written.
 
 **This is also the first lab in the series**, so Stage 0 below walks you through installing the
-`workbench` plugin itself — every later lab assumes that part is already done.
+`workbench` plugin itself. Every later lab assumes that part is already done.
 
 ---
 
@@ -30,16 +30,16 @@ the authorization code correctly nulled on retrieval, no settlement record writt
 ### Prerequisites
 
 - JDK 17 (Zulu recommended), Maven 3.9+
-- Claude Code — teach on whatever version you actually have; no upgrade required. Live-tested
+- Claude Code: teach on whatever version you actually have; no upgrade required. Live-tested
   this pass on both 2.1.108 and 2.1.234: the plugin installs, lists as enabled, and validates
   cleanly on both.
-- The `workbench` plugin — installed in Stage 0, not before. If you want it ready ahead of time
+- The `workbench` plugin: installed in Stage 0, not before. If you want it ready ahead of time
   anyway, the two commands are in Stage 0 below.
 
 ### Preflight (before the session starts)
 
 1. `java -version` → 17.x (or 21.x compiling to target 17) · `mvn -version` → 3.9+
-2. Pre-warm the Maven cache once per machine: `mvn -q -o dependency:go-offline` — this service
+2. Pre-warm the Maven cache once per machine: `mvn -q -o dependency:go-offline`. This service
    makes no outbound calls at *runtime*, but a cold `~/.m2` resolves dependencies over the
    network on the first build like any Maven project.
 3. From the repo root:
@@ -50,7 +50,7 @@ the authorization code correctly nulled on retrieval, no settlement record writt
    ```bash
    mvn verify
    ```
-   This **should fail** — on exactly one thing, an ArchUnit layering-violation message. That's
+   This **should fail**, on exactly one thing, an ArchUnit layering-violation message. That's
    intended, not a broken lab: F8 is caught by the build itself, and you fix it in Stage 4. If
    `mvn verify` fails for any other reason, or passes cleanly, flag your facilitator before
    continuing.
@@ -61,45 +61,45 @@ the authorization code correctly nulled on retrieval, no settlement record writt
 
 - `mvn test` is **green**.
 - The offline refund path works.
-- The online path throws `UnsupportedOperationException` — genuinely unbuilt.
+- The online path throws `UnsupportedOperationException`, genuinely unbuilt.
 - `mvn verify` is **red**, on exactly one ArchUnit message (F8).
 - Sixteen findings are seeded in this one file; none are fixed yet.
 
 ---
 
-## Stage 0 — Ground: install the harness, meet the five failure modes (18 min)
+## Stage 0: Ground the room, install the harness, meet the five failure modes (18 min)
 
 **Objective.** A confirmed-working plugin install and shared vocabulary before anyone touches a
-keyboard. An ungrounded room diverges within ten minutes — and since this is the first lab, "the
+keyboard. An ungrounded room diverges within ten minutes, and since this is the first lab, "the
 harness" includes actually installing it, not just confirming it.
 
 **Action.**
 
-1. Install the plugin, live, together — a small **private** marketplace that ships in the plugin
-   repo itself, not a public registry:
+1. Install the plugin, live, together. It comes from a small **private** marketplace that ships
+   in the plugin repo itself, not a public registry:
    ```bash
    claude plugin marketplace add https://github.com/ArulaAI/arula-mc-labs-plugin
    claude plugin install workbench@mastercard-workbench
    ```
-   No clone needed just for this — `marketplace add` fetches the repo directly. Confirmed working
-   identically on 2.1.108 and 2.1.234 this pass. **On 2.1.108, omit `-y`** — that flag doesn't
+   No clone needed just for this: `marketplace add` fetches the repo directly. Confirmed working
+   identically on 2.1.108 and 2.1.234 this pass. **On 2.1.108, omit `-y`**: that flag doesn't
    exist there yet; the plain command completes fine without it.
 2. Facilitator walks the room through: agents vs. skills vs. commands vs. rules (what each piece
    of the `workbench` plugin actually is); model tiers and when to use which; why context
    degrades over a long session; what determinism means when the underlying model is
    probabilistic; why an agent reviewing its own work tends to pass it.
-3. The five failure modes, named explicitly — you'll meet all five, firsthand, this lab:
-   - **Hallucination** — inventing behavior, fields, or dependencies the spec never mentions
-   - **Correctly solving the wrong problem** — building something real and well-engineered that
+3. The five failure modes, named explicitly. You'll meet all five, firsthand, this lab:
+   - **Hallucination**: inventing behavior, fields, or dependencies the spec never mentions
+   - **Correctly solving the wrong problem**: building something real and well-engineered that
      was never in scope
-   - **Incorrectly solving the right problem** — the right feature, built with a gap the spec's
+   - **Incorrectly solving the right problem**: the right feature, built with a gap the spec's
      edge cases exposed
-   - **Sycophancy** — an agent (or a person) reviewing its own work and approving it
-   - **Invented dependencies** — adding a call to a service, library, or check that doesn't
+   - **Sycophancy**: an agent (or a person) reviewing its own work and approving it
+   - **Invented dependencies**: adding a call to a service, library, or check that doesn't
      exist on this path
 
 **Commands.** `/lab` → confirm it reports lab id `finish-the-refund`, targets `F1, F2`, and a
-120-minute budget. Then **confirm a journey event actually landed** in `.claude/journey/` — open
+120-minute budget. Then **confirm a journey event actually landed** in `.claude/journey/`: open
 the directory, don't just trust the command's exit code. On Windows this is where a silent
 bash/PATH issue would otherwise surface at Stage 6 instead of now.
 
@@ -112,22 +112,22 @@ confirm Claude Code is open at the repo root, not a parent or child directory. N
 despite `/lab` working → the plugin installed but its hooks aren't wired for this session; flag
 your facilitator, don't proceed into Stage 1 ungraded.
 
-**Close the stage.** `/hand-off` — cite the confirmed harness state (plugin installed, journey
+**Close the stage.** `/hand-off`: cite the confirmed harness state (plugin installed, journey
 event present, plugin commands listed) as this stage's artifact.
 
 **Invariant.** Plugin installed and validated; harness live; room can name the five failure modes.
 
 ---
 
-## Stage 1 — Comprehend and register (25 min)
+## Stage 1: Comprehend and register (25 min)
 
-**Objective.** A registered, prioritized `RISK_REGISTER.md` with all sixteen findings — not just
+**Objective.** A registered, prioritized `RISK_REGISTER.md` with all sixteen findings, not just
 the ones you plan to fix.
 
 **Action.**
 
 1. **First, with your own eyes, no AI.**
-   - Start the app: `mvn spring-boot:run`. It runs in the foreground and streams logs — open a
+   - Start the app: `mvn spring-boot:run`. It runs in the foreground and streams logs. Open a
      **second terminal** in the same repo for the requests below; don't close the first one, you
      need to watch its log output in step 2.
    - Submit the same refund request twice, with the same `idempotencyKey`, from the second
@@ -152,11 +152,11 @@ the ones you plan to fix.
        }' | jq
      ```
      Run that exact command a second time, unchanged. Expected: two `200 OK` responses, each with
-     a **different** `authorizationCode` — two records, not one 409 on the retry.
-   - Switch to the first terminal (still running `mvn spring-boot:run`) and look at the log —
+     a **different** `authorizationCode`; two records, not one 409 on the retry.
+   - Switch to the first terminal (still running `mvn spring-boot:run`) and look at the log:
      you'll see two `INFO ... Processed offline refund: ...` lines, each showing the
      `authorizationCode` (`AUTH-...`) in cleartext.
-   - Back in the second terminal, try void — it shouldn't exist at all per
+   - Back in the second terminal, try void, which shouldn't exist at all per
      `specs/OUT_OF_SCOPE.md`:
      ```bash
      curl -s -X POST http://localhost:8080/card-payments/cpg-1001/void \
@@ -178,13 +178,13 @@ the ones you plan to fix.
        }' | jq
      ```
      Expected: a `200 OK` with a full refund record back, `"status": "VOIDED"`. Note: it looks up
-     the record by `transactionId`, not `idempotencyKey` — so the `idempotencyKey` you send here
+     the record by `transactionId`, not `idempotencyKey`, so the `idempotencyKey` you send here
      is ignored, and you'll see the *original* refund's `idempotencyKey` (`idem-demo-1`) echoed
      back in the response, not `idem-void-1`. That's expected too; the point of this check is that
      the endpoint answers at all, not its internal lookup key.
    - `Ctrl+C` the first terminal to stop the app once all three checks are done.
 2. Read `specs/refunds-s2i-phase1.spec.md` and `specs/OUT_OF_SCOPE.md` in full.
-3. **Then** direct-prompt Claude Code — this prompt does two passes in one: a comprehension
+3. **Then** direct-prompt Claude Code. This prompt does two passes in one: a comprehension
    table, then an explicit check against the spec's own business rules. That second half is what
    surfaces spec-level findings (like the missing `EXCESSIVE_REFUNDS` gate) that reading the code
    alone won't show you:
@@ -196,16 +196,16 @@ the ones you plan to fix.
    > code does not appear to satisfy. Do not suggest fixes. Do not create the risk register yet."
 4. **Read what comes back once, don't audit it against a checklist you don't have.** A realistic
    first pass surfaces roughly 11-12 of the sixteen findings this way, on top of the two or three
-   you already found unaided in step 1 — that's the expected yield, not a shortfall to go hunting
+   you already found unaided in step 1. That's the expected yield, not a shortfall to go hunting
    for. Reject anything that sounds plausible but is actually out of scope, with a stated reason
-   (a couple of decoys are seeded on purpose) — that's real triage, a five-second gut check per
+   (a couple of decoys are seeded on purpose). That's real triage, a five-second gut check per
    row, not a re-read of the code.
 5. **Write the register.** Hand the finished review straight to Claude Code:
    > "Write `RISK_REGISTER.md` as a table: ID | Name | Severity | Failure mode | Affected files |
    > Impact | Status, using everything from the review above. Mark `REFUND_EXPIRY` 'Escalated,
    > value undefined in spec, not defaulted,' never invent a number for it. All Status = Open."
 6. **The one thing worth a manual glance, not a full audit.** Open the finished file and confirm
-   the `REFUND_EXPIRY` row actually says escalated, not a made-up window value — that's the one
+   the `REFUND_EXPIRY` row actually says escalated, not a made-up window value. That's the one
    spot an AI under pressure to look complete might quietly invent an answer instead of admitting
    the spec left it blank. If your group's table is short of the sixteen after this (some groups
    miss `EXCESSIVE_REFUNDS`, F6, since it's a spec-only rule with no visible code symptom yet, or
@@ -217,27 +217,27 @@ the ones you plan to fix.
 **Human gate.** At least two findings found unaided, before any AI involvement; at least two
 decoys explicitly rejected with a stated reason; F5's status explicit either way.
 
-**Failure / recovery.** `docs/FACILITATOR_KEY.md` is the answer key — nothing blocks you from
-opening it early, that's on your own discipline, not a hook. Opening it before you've registered
+**Failure / recovery.** `docs/FACILITATOR_KEY.md` is the answer key. Nothing blocks you from
+opening it early; that's on your own discipline, not a hook. Opening it before you've registered
 your own findings just means you're grading your own homework.
 
-**Close the stage.** `/hand-off` — cite `RISK_REGISTER.md` as this stage's artifact.
+**Close the stage.** `/hand-off`: cite `RISK_REGISTER.md` as this stage's artifact.
 
 **Invariant.** All sixteen findings registered, each citing a real affected file; F5's status
 stated explicitly, not silently skipped.
 
 ---
 
-## Stage 2 — Plan (12 min)
+## Stage 2: Plan (12 min)
 
 **Objective.** An ordered remediation plan, Critical first, scoped to exactly F1, F2, and building
-`processOnlineRefund()` — nothing else.
+`processOnlineRefund()`, nothing else.
 
-**Surface.** The `planner` subagent. **Say so explicitly in the prompt** — confirmed live this
+**Surface.** The `planner` subagent. **Say so explicitly in the prompt**: confirmed live this
 pass that leaving it implicit (just describing the task) does not reliably trigger the subagent;
 Claude Code will happily do the work itself in-session instead, which defeats the point of a
 plan produced independently of the register you just wrote. After running the prompt below, ask
-"did you use the planner subagent for that?" — if the answer is no, ask it to redo the same
+"did you use the planner subagent for that?" If the answer is no, ask it to redo the same
 prompt with the subagent explicitly invoked.
 
 **Prompt.**
@@ -250,63 +250,63 @@ prompt with the subagent explicitly invoked.
 **Artifact.** `docs/plans/plan.md`.
 
 **Human gate.** Review the plan yourself against `payments-guardrails` and the spec's own
-acceptance criteria before moving on. Close any gap you find — don't accept a plan that silently
+acceptance criteria before moving on. Close any gap you find. Don't accept a plan that silently
 expands scope (a step touching F3–F14) or silently narrows it (no step for the online-path
 build).
 
 **Failure / recovery.** **Facilitator overhead running in parallel, not out of your budget:** the
-facilitator spot-checks 3 of your group's 14 register rows against the actual code — about 2
-minutes, outside participant time.
+facilitator spot-checks 3 of your group's 14 register rows against the actual code (about 2
+minutes, outside participant time).
 
-**Close the stage.** `/hand-off` — cite `docs/plans/plan.md` as this stage's artifact.
+**Close the stage.** `/hand-off`: cite `docs/plans/plan.md` as this stage's artifact.
 
 **Invariant.** Plan exists, Critical-severity steps first; every step maps to F1, F2, or the
 online-path build, each naming its target file(s) and a concrete success criterion.
 
 ---
 
-## Stage 3 — Prove it's broken (15 min)
+## Stage 3: Prove it's broken (15 min)
 
-**Objective.** Two new red test slices, proving F1 and F2 are real — before touching any
+**Objective.** Two new red test slices, proving F1 and F2 are real, before touching any
 production code.
 
 **Prompt.**
 
 > "Write JUnit 5 tests asserting the INTENDED behavior:
 >
-> - F1, LOGS ONLY: no authorization code appears in RefundService's log output — neither the
->   INFO success line nor the ERROR line in the catch block — for an offline refund. Use Spring
+> - F1, LOGS ONLY: no authorization code appears in RefundService's log output (neither the
+>   INFO success line nor the ERROR line in the catch block) for an offline refund. Use Spring
 >   Boot's `OutputCaptureExtension` (already available via `spring-boot-starter-test`) with a
 >   `CapturedOutput` parameter; do not add a new dependency for this. Do NOT assert the offline
->   RESPONSE body is scrubbed — the spec scopes authorization-code nulling to ONLINE refund
+>   RESPONSE body is scrubbed: the spec scopes authorization-code nulling to ONLINE refund
 >   retrieval only, so the offline response legitimately still carries it. Assert it is still
 >   present, to pin the scope of the fix.
 > - F2: a retried refund with the same idempotencyKey returns a decline/409 and creates no
 >   second record.
 >
-> Build request objects with `com.mc.pgs.refunds.support.RefundRequestFixtures` — do not
+> Build request objects with `com.mc.pgs.refunds.support.RefundRequestFixtures`; do not
 > hand-assemble the nested `amounts`/`merchantOrder`/`wsApiSupport` structure. Deterministic
 > tests, follow existing conventions. Do not modify production code."
 
 **Why F1's slice is logs-only.** A test asserting the offline response is scrubbed would still be
-red after a completely correct fix — that's not proving it's broken, it's proving the test wrong.
+red after a completely correct fix. That's not proving it's broken, it's proving the test wrong.
 If Claude Code volunteers that assertion anyway, notice it: generalising a real rule past its
 stated scope is exactly the failure mode this stage exists to make visible.
 
 **Artifacts.** Two new test slices.
 
 **Observable.** `mvn test` shows exactly the two new reds, everything else green. `mvn verify`
-reports the same two, not three — Maven stops at the first failing phase, so a plain invocation
+reports the same two, not three: Maven stops at the first failing phase, so a plain invocation
 never reaches the later `verify`/failsafe phase where `ArchitectureIT` (F8) lives once earlier
 tests are red. F8's red is real and unchanged, just not re-reported in this run. To see all three
 together: `mvn verify -Dmaven.test.failure.ignore=true` (the final line will say `BUILD SUCCESS`
-even though three things failed — that's what "ignore" means to Maven; read the `[ERROR]` blocks,
+even though three things failed: that's what "ignore" means to Maven; read the `[ERROR]` blocks,
 not the last line).
 
 **Human gate.** If you see a failure count other than two on a plain `mvn verify`, stop and check
 with your facilitator before continuing.
 
-**Close the stage.** `/hand-off` — cite the new test files and the `mvn test`/`mvn verify` output
+**Close the stage.** `/hand-off`: cite the new test files and the `mvn test`/`mvn verify` output
 confirming the red state.
 
 **Invariant.** Two new test slices exist, asserting intended/secure behavior; both red;
@@ -314,7 +314,7 @@ confirming the red state.
 
 ---
 
-## Stage 4 — Remediate and build (35 min · the largest block)
+## Stage 4: Remediate and build (35 min · the largest block)
 
 **Objective.** F1 and F2 fixed under fresh-context review, F8 resolved, and
 `processOnlineRefund()` built to spec.
@@ -323,7 +323,7 @@ confirming the red state.
 
 1. **Fix F1.** Three separate steps, not one, run them in order:
 
-   **(a) Fix prompt** — normal, direct-prompt Claude Code, no subagent yet:
+   **(a) Fix prompt**, normal, direct-prompt Claude Code, no subagent yet:
    ```
    Fix F1: the INFO log line in RefundService.processOfflineRefund() logs the full
    RefundRecord, which includes the authorization code. Change it to log only non-sensitive
@@ -338,13 +338,13 @@ confirming the red state.
    Confirm `RefundServiceLoggingTest.offlineRefund_successLine_doesNotLogAuthorizationCode`
    (red since Stage 3) is now green, and nothing else broke.
 
-   **(c) Review prompt** — only after (a) and (b), word for word, subagent named explicitly:
+   **(c) Review prompt**, only after (a) and (b), word for word, subagent named explicitly:
    ```
    Using the pr-reviewer subagent: review my fix to F1 against coding-standards.md. You did
    not write this code and have no knowledge of how it was written. Return PASS or FAIL with
    specific findings.
    ```
-   **Do not just ask "did I get this right" in the same conversation** — that's self-review,
+   **Do not just ask "did I get this right" in the same conversation.** That's self-review,
    not the fresh-context review this stage is built to teach.
 
    **(d) Confirm the subagent actually ran:**
@@ -378,7 +378,7 @@ confirming the red state.
    ```
 
    **(d) Confirm:** `Did you use the pr-reviewer subagent for that?`
-3. `mvn verify` will still fail on ArchUnit until F8 is addressed — move the
+3. `mvn verify` will still fail on ArchUnit until F8 is addressed: move the
    privilege-evaluation logic out of `RefundController` into `RefundService`. You don't have to
    hunt for this by eye; the build tells you.
 4. **Build `processOnlineRefund()`.** Run this prompt:
@@ -393,28 +393,28 @@ confirming the red state.
    endpoint. Follow this file's existing conventions and use RefundRequestFixtures for any
    new tests.
    ```
-   Validate: `mvn verify` — should pass everything now, including ArchUnit from step 3.
-5. **Watch the traps** — not a prompt, a review of what step 4 produced:
+   Validate: `mvn verify`, which should pass everything now, including ArchUnit from step 3.
+5. **Watch the traps**, not a prompt but a review of what step 4 produced:
    - Check the diff for any new dependency (`pom.xml`). A PAN-masking-library request should
-     fail the unknown-dependency check on its own — if it doesn't, reject the addition yourself.
+     fail the unknown-dependency check on its own. If it doesn't, reject the addition yourself.
    - Confirm no settlement record gets written anywhere in the new code; decline it if offered.
-   - Check whether it implemented an `EXCESSIVE_REFUNDS` check or not — either outcome is fine,
+   - Check whether it implemented an `EXCESSIVE_REFUNDS` check or not. Either outcome is fine;
      this isn't something to instruct for or against. If it's skipped, that's F6 reproduced live,
-     as designed — note it, don't ask for the check now, it's backlog, not a Stage 4 target.
-6. Update `RISK_REGISTER.md` (status changes for F1, F2, F8) and `FIXES.md` — fill in the
+     as designed. Note it, don't ask for the check now; it's backlog, not a Stage 4 target.
+6. Update `RISK_REGISTER.md` (status changes for F1, F2, F8) and `FIXES.md`: fill in the
    existing table (don't replace it with prose; `grade_repo.py` reads actual table rows), one row
    per fix, with the `pr-reviewer` verdict.
 
 **Artifacts.** F1/F2/F8 fixes · `processOnlineRefund()` · updated `RISK_REGISTER.md` and
 `FIXES.md`.
 
-**Human gate.** Each fix reviewed fresh-context before you move to the next one — the failure
+**Human gate.** Each fix reviewed fresh-context before you move to the next one. The failure
 mode this gate exists to catch is *accepting a fix unread because you already believe it works*.
 
 **Failure / recovery.** If your group is behind by the 20-minute mark of this stage, ask your
 facilitator for the `reference/` fallback rather than rushing the fresh-context review step.
 
-**Close the stage.** `/hand-off` — cite the fixes, `processOnlineRefund()`, `RISK_REGISTER.md`,
+**Close the stage.** `/hand-off`: cite the fixes, `processOnlineRefund()`, `RISK_REGISTER.md`,
 and `FIXES.md` as this stage's artifacts.
 
 **Invariant.** `mvn verify` passes ArchUnit; F1/F2/F8 all resolved; `processOnlineRefund()` built
@@ -422,7 +422,7 @@ to spec; `FIXES.md` has a real table row per fix with a recorded reviewer verdic
 
 ---
 
-## Stage 5 — Look ahead (8 min)
+## Stage 5: Look ahead (8 min)
 
 **Objective.** Name what's next without doing it. No code changes this stage.
 
@@ -440,39 +440,39 @@ prompt, don't rely on the task description alone to trigger it.
 **Artifact.** `docs/secure-features-guide.md`.
 
 **Human gate.** Review it: every recommendation should be grounded in something specific to this
-codebase (a real backlog finding — F7, F9, F10, F11, F16 — or a real gap in the current design),
-not generic security advice that could apply to any service.
+codebase, either a real backlog finding (F7, F9, F10, F11, F16) or a real gap in the current
+design, not generic security advice that could apply to any service.
 
-**Close the stage.** `/hand-off` — cite `docs/secure-features-guide.md` as this stage's artifact.
+**Close the stage.** `/hand-off`: cite `docs/secure-features-guide.md` as this stage's artifact.
 
 **Invariant.** `docs/secure-features-guide.md` exists; every recommendation ties back to something
 concrete in this codebase; no code changed this stage.
 
 ---
 
-## Stage 6 — Close (7 min)
+## Stage 6: Close (7 min)
 
 **Objective.** Evidence, audit trail, grade. Nothing is done until someone who wasn't in the room
 can verify it from the artifacts alone.
 
 **Action.**
 
-1. Run `mvn verify` — confirm it's fully green: ArchUnit, the compile/test suite, JaCoCo report
+1. Run `mvn verify` and confirm it's fully green: ArchUnit, the compile/test suite, JaCoCo report
    generated.
 2. Update `SECURITY.md`: F1, F2, F8 as Security Controls (cite the fix and its `pr-reviewer`
    verdict); F3, F4, F6, F7, F9–F16 as Known Risks; **F5 explicitly marked escalated, not
-   defaulted** — its own row, not folded into the others.
+   defaulted**, in its own row, not folded into the others.
 3. Confirm `docs/workflow-tracker.md` has a `/hand-off` entry for every stage (0 through 6), each
-   one citing the specific artifact filename that stage produced — not a repeated template.
+   one citing the specific artifact filename that stage produced, not a repeated template.
 4. Grade yourself:
    ```bash
    python3 .claude/scripts/grade_repo.py
    ```
-   **Do not use the plugin's own `/grade`** — as of workbench 0.2.0, its `lab-grader` only
+   **Do not use the plugin's own `/grade`.** As of workbench 0.2.0, its `lab-grader` only
    supports four generic check types and does not understand this rubric's content-based checks;
    running `/grade` against `.claude/rubrics/finish-the-refund.rubric.yaml` silently scores those
    criteria 0 regardless of what you did. `grade_repo.py` is the real, deterministic grader for
-   this rubric — read the per-criterion breakdown, not just the overall score. A passing grade
+   this rubric. Read the per-criterion breakdown, not just the overall score. A passing grade
    with a failed F5 content check is not actually a pass of the lab's central lesson.
 5. Recap as a group: direct-prompt comprehension vs. the fresh-context review loop; two traced
    fixes plus one mechanically-caught layering fix; a documented backlog including one gap
@@ -484,7 +484,7 @@ card.
 **Human gate.** `mvn verify` fully green; grade breakdown reviewed, not just the headline
 percentage.
 
-**Close the stage.** `/hand-off` — cite `SECURITY.md` and the grade output as this stage's
+**Close the stage.** `/hand-off`: cite `SECURITY.md` and the grade output as this stage's
 artifacts.
 
 **Invariant.** `mvn verify` fully green; `SECURITY.md` complete with F5 explicitly escalated;
@@ -511,53 +511,53 @@ Paths are what the grader and the gates look at.
 
 Two layers, both reproducible.
 
-**Layer A — journey completeness** (the plugin's own `lab-grader`, if you run it): did you move
+**Layer A: journey completeness** (the plugin's own `lab-grader`, if you run it): did you move
 through the stages, and did the audit trail stay free of sensitive data? It proves progress, not
-correctness — and this rubric's richer content checks don't run through it (see Stage 6 above).
+correctness, and this rubric's richer content checks don't run through it (see Stage 6 above).
 
-**Layer B — repo state and behaviour:**
+**Layer B: repo state and behaviour**
 
 ```bash
 python3 .claude/scripts/grade_repo.py
 ```
 
-Deterministic checks against `.claude/rubrics/finish-the-refund.rubric.yaml` — the same repo
+Deterministic checks against `.claude/rubrics/finish-the-refund.rubric.yaml`: the same repo
 state always yields the same score. Checks register completeness, F1/F2/F8 resolution with a
-recorded reviewer verdict, F5 escalation (not defaulting), and the secure-features-guide content —
-not file existence, actual content.
+recorded reviewer verdict, F5 escalation (not defaulting), and the secure-features-guide content.
+Not file existence, actual content.
 
 ---
 
 ## What you leave with
 
 - A registered, prioritized sixteen-finding risk register, F5 explicitly escalated or explicitly
-  missed — never silently skipped.
+  missed, never silently skipped.
 - F1 and F2 fixed under fresh-context review; F8 resolved; `processOnlineRefund()` built to spec.
 - The evidence: `RISK_REGISTER.md`, `docs/plans/plan.md`, the new tests, `FIXES.md`,
   `docs/secure-features-guide.md`, `SECURITY.md`, seven hand-offs, the journey, and a grade card.
 
 ## The five things this lab is actually about
 
-1. **Hallucination, felt firsthand** — not defined on a slide, personally caught once.
-2. **Correctly solving the wrong problem, and incorrectly solving the right one** — both are real,
+1. **Hallucination, felt firsthand**: not defined on a slide, personally caught once.
+2. **Correctly solving the wrong problem, and incorrectly solving the right one**: both are real,
    both look like progress, only one of them is what the spec actually asked for.
 3. **Sycophancy is the one that matters most.** The reviewer that already believes the work is
-   done will pass it. The one that doesn't know you won't — that's the fresh-context `pr-reviewer`
+   done will pass it. The one that doesn't know you won't. That's the fresh-context `pr-reviewer`
    gate, not a formality.
-4. **Invented dependencies** — an agent reaching for a library or a call that doesn't exist on
+4. **Invented dependencies**: an agent reaching for a library or a call that doesn't exist on
    this path, offered with total confidence.
-5. **A green build tells you the code ran — not that it's safe.** F8 is caught by the build; the
+5. **A green build tells you the code ran, not that it's safe.** F8 is caught by the build; the
    other fifteen findings are not, and a passing test suite says nothing about any of them.
 
 ## See also
 
-- [`AGENTS.md`](./AGENTS.md) — canonical rule, subagent, command, and hook reference
-- [`README.md`](./README.md) — architecture note, prerequisites, generated artifacts
-- [`docs/FACILITATOR_KEY.md`](./docs/FACILITATOR_KEY.md) — facilitator answer key (not for
+- [`AGENTS.md`](./AGENTS.md): canonical rule, subagent, command, and hook reference
+- [`README.md`](./README.md): architecture note, prerequisites, generated artifacts
+- [`docs/FACILITATOR_KEY.md`](./docs/FACILITATOR_KEY.md): facilitator answer key (not for
   participants)
-- [`docs/SOURCE_TRACEABILITY.md`](./docs/SOURCE_TRACEABILITY.md) — which design decisions come
+- [`docs/SOURCE_TRACEABILITY.md`](./docs/SOURCE_TRACEABILITY.md): which design decisions come
   from the real PGS spec pack and which are labelled lab assumptions
-- [`exercises/`](./exercises/) — per-stage instructions, exact prompts, and a
+- [`exercises/`](./exercises/): per-stage instructions, exact prompts, and a
   predict-before-you-look hypothesis exercise
-- [`specs/refunds-s2i-phase1.spec.md`](./specs/refunds-s2i-phase1.spec.md) — the spec this lab is
+- [`specs/refunds-s2i-phase1.spec.md`](./specs/refunds-s2i-phase1.spec.md): the spec this lab is
   built against
