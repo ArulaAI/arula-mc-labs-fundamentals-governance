@@ -9,7 +9,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 \"$CLAUDE_PROJECT_DIR/.claude/hooks/gate_guard.py\"",
+            "shell": "bash",
+            "command": "PY=$(command -v python3 2>/dev/null || command -v python 2>/dev/null); \"$PY\" \"$CLAUDE_PROJECT_DIR/.claude/hooks/gate_guard.py\"",
             "timeout": 10
           }
         ]

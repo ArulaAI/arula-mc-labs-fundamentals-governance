@@ -35,6 +35,17 @@ install the package:
 python3 -m pip install pyyaml
 ```
 
+> **Windows only:** the repo's `PreToolUse` hook (`.claude/hooks/gate_guard.py`) resolves
+> whichever of `python3` or `python` is on your PATH, so it doesn't matter which name your
+> Python install uses. But it needs a real shell to do that resolution, so **Git Bash must be
+> installed** (e.g. bundled with [Git for Windows](https://git-scm.com/downloads/win)). Claude
+> Code 2.1.108 runs hook commands through Git Bash on Windows when it's present, and falls back
+> to PowerShell (where this hook will not run correctly) if it's missing. Confirm Git Bash is on
+> your machine before continuing:
+> ```bash
+> bash --version
+> ```
+
 ## Step 2: Confirm you're on Claude Code 2.1.108
 
 ```bash
@@ -94,8 +105,9 @@ Then confirm a journey event actually landed on disk, not just that the command 
 ```bash
 ls .claude/journey/
 ```
-You should see at least one `.jsonl` file. On Windows, this is where a silent bash/PATH issue
-would otherwise surface much later, at Stage 6, instead of now.
+You should see at least one `.jsonl` file. On Windows, this is where a silent Git-Bash/PATH issue
+would otherwise surface much later, at Stage 6, instead of now — if no file appears, re-check
+Step 1's Git Bash requirement before going further.
 
 ## You're ready
 
