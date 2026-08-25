@@ -78,6 +78,7 @@ the plugin repo itself. Run both commands, in order:
 ```bash
 claude plugin marketplace add https://github.com/ArulaAI/arula-mc-labs-plugin
 claude plugin install workbench@mastercard-workbench
+claude plugin install superpowers@claude-plugins-official
 ```
 
 No separate clone is needed for the plugin — `marketplace add` fetches the repo directly.
