@@ -117,7 +117,38 @@ You should see at least one `.jsonl` file. On Windows, this is where a silent Gi
 would otherwise surface much later, at Stage 6, instead of now — if no file appears, re-check
 Step 1's Git Bash requirement before going further.
 
+## Step 6: Run the hook verification script
+
+This script fires every hook (plugin + repo-local) with realistic payloads and checks they all
+resolve Python and execute without errors. Run it from the repo root:
+
+```bash
+bash scripts/verify-hooks.sh
+```
+
+It tests 14 things in about 5 seconds:
+
+| Check | What it proves |
+|---|---|
+| Plugin discovery | The `workbench` plugin is installed and locatable |
+| `resolve-python` | The plugin's Python resolver runs and finds Python 3.8+ |
+| Cache file valid | The resolved Python path was cached and is executable |
+| pyyaml | The grader's dependency is installed |
+| `journey_record.py` x4 | session-start, pre-tool, post-tool, and stop events all fire via `run-python` |
+| `quality_gates.py` | Secret scan + lint gate runs via `run-python` without crashing |
+| Journey file written | Events actually landed on disk, not just exit 0 |
+| `gate_guard.py` allow | Read on a gated path is correctly allowed (via cached Python path) |
+| `gate_guard.py` block | Write to `reference/` is correctly blocked |
+| `gate_guard.py` --self-test | All 4 bypass classes + controls pass (16 cases) |
+| `grade_repo.py` | The grader runs without Python errors (score will be low -- expected) |
+
+If you see `ALL 14 CHECKS PASSED`, your machine is ready. If any check fails, the output tells
+you exactly what to fix.
+
+> **Tip:** On Windows, if you see "Python was not found" in the output, revisit Step 1's
+> Windows notes about disabling the App Execution Aliases for `python.exe` and `python3.exe`.
+
 ## You're ready
 
-Once Steps 1-5 all pass, you're ready to start Stage 0. The stage-by-stage walkthrough — exact
+Once Steps 1-6 all pass, you're ready to start Stage 0. The stage-by-stage walkthrough — exact
 prompts, minute budgets, and checkpoints — is in [`LAB_ACTION_GUIDE.md`](LAB_ACTION_GUIDE.md).

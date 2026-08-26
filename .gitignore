@@ -3,3 +3,4 @@ target/
 .claude/quality-gates-latest.json
 .claude/.pom-dependency-baseline.txt
 .DS_Store
+.claude/hooks/.python_path
