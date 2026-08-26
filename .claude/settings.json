@@ -10,7 +10,7 @@
           {
             "type": "command",
             "shell": "bash",
-            "command": "PY=$(py -3 -c \"import sys;print(sys.executable)\" 2>/dev/null) || PY=$(python3 -c \"import sys;print(sys.executable)\" 2>/dev/null) || PY=$(python -c \"import sys;sys.version_info>=(3,8)or sys.exit(1);print(sys.executable)\" 2>/dev/null) || { echo 'Python 3.8+ not found. Install from https://python.org' >&2; exit 1; }; \"$PY\" \"$CLAUDE_PROJECT_DIR/.claude/hooks/gate_guard.py\"",
+            "command": "\"$(cat \"$CLAUDE_PROJECT_DIR/.claude/hooks/.python_path\")\" \"$CLAUDE_PROJECT_DIR/.claude/hooks/gate_guard.py\"",
             "timeout": 10
           }
         ]
