@@ -23,28 +23,35 @@ This repo's hooks and grader are Python scripts. `gate_guard.py` in particular i
 hook that runs on every file edit from the moment the plugin loads (Step 4), not just at grading
 time, so it needs to work from Stage 0 on.
 
-Confirm both:
+Confirm Python is installed and `pyyaml` is available:
 ```bash
-python3 --version
-python3 -c "import yaml"
+python --version    # Windows (python.org installer)
+python3 --version   # Mac / Linux
 ```
 
-The second command should print nothing (success). If it errors with `ModuleNotFoundError`,
-install the package:
+Either command printing `Python 3.x.x` is fine — the hooks auto-detect whichever works.
+
 ```bash
-python3 -m pip install pyyaml
+python -c "import yaml"    # or python3 -c "import yaml"
 ```
 
-> **Windows only:** the repo's `PreToolUse` hook (`.claude/hooks/gate_guard.py`) resolves
-> whichever of `python3` or `python` is on your PATH, so it doesn't matter which name your
-> Python install uses. But it needs a real shell to do that resolution, so **Git Bash must be
-> installed** (e.g. bundled with [Git for Windows](https://git-scm.com/downloads/win)). Claude
-> Code 2.1.108 runs hook commands through Git Bash on Windows when it's present, and falls back
-> to PowerShell (where this hook will not run correctly) if it's missing. Confirm Git Bash is on
-> your machine before continuing:
-> ```bash
-> bash --version
-> ```
+If it errors with `ModuleNotFoundError`, install the package:
+```bash
+python -m pip install pyyaml    # or python3 -m pip install pyyaml
+```
+
+> **Windows notes:**
+>
+> - **Install Python from [python.org](https://python.org)** and check **"Add Python to PATH"**
+>   during install.
+>
+> - If you see "Python was not found" errors, go to **Settings > Apps > Advanced app settings >
+>   App execution aliases** and toggle off `python.exe` and `python3.exe`.
+>
+> - **Git Bash required** (bundled with [Git for Windows](https://git-scm.com/downloads/win)):
+>   ```bash
+>   bash --version
+>   ```
 
 ## Step 2: Confirm you're on Claude Code 2.1.108
 
