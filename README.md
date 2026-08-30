@@ -51,8 +51,7 @@ bash/PATH issue would otherwise surface at Stage 6 instead of now.
 
 **The participant-facing walkthrough is [`LAB_ACTION_GUIDE.md`](LAB_ACTION_GUIDE.md)**: exact
 stage-by-stage prompts, minute budgets, and checkpoints. This README covers architecture and
-setup; `exercises/stage-<n>-<name>/` gives each stage a predict-before-you-look `hypothesis.md`
-companion, per the spec → hypothesis → confidence discipline this lab also practices.
+setup.
 
 ## The 7 stages
 
@@ -71,7 +70,7 @@ all provided by the `workbench` plugin except `/hand-off`, which is this lab's o
 
 ## What you're looking for
 
-Fourteen findings are seeded on purpose, every one traceable to `pgs-lab-spec-pack.md`. Find them
+Sixteen findings are seeded on purpose, every one traceable to `pgs-lab-spec-pack.md`. Find them
 yourself in Stage 1. Don't peek at `AGENTS.md`'s finding list or `docs/FACILITATOR_KEY.md`
 before you've registered your own findings, or you'll be grading your own homework. In short:
 sensitive data logged in cleartext, a missing idempotency check, an out-of-scope Void endpoint

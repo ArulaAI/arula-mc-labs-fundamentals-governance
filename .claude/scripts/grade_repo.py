@@ -210,7 +210,7 @@ class Repo:
 _SEPARATOR_ROW = re.compile(r"^\s*\|[\s:|-]+\|\s*$")
 
 # A finding id, word-bounded so `F1` does not match inside `F14`.
-_FINDING_ID = re.compile(r"\bF(?:[1-9]|1[0-4])\b")
+_FINDING_ID = re.compile(r"\bF(?:[1-9]|1[0-6])\b")
 
 # A real register/fixes row fills most of its columns. RISK_REGISTER.md has 7 and FIXES.md has
 # 6, so 4 populated cells is a floor that no honest row trips over and no two-cell crammed line

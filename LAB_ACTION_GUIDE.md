@@ -97,6 +97,11 @@ harness" includes actually installing it, not just confirming it.
    - **Sycophancy**: an agent (or a person) reviewing its own work and approving it
    - **Invented dependencies**: adding a call to a service, library, or check that doesn't
      exist on this path
+4. **What "spec" means in this lab.** When this lab says "the spec," it means the engineering-ready
+   tech spec at `specs/refunds-s2i-phase1.spec.md` — the document you compare code against in
+   Stage 1. This lab does not produce or validate the upstream PRD or design spec that a
+   product/PMT team would own. PMT-side spec authorship and sign-off is a known, explicitly
+   out-of-scope gap for this series, not a silent omission.
 
 **Commands.** `/lab` → confirm it reports lab id `finish-the-refund`, targets `F1, F2`, and a
 120-minute budget. Then **confirm a journey event actually landed** in `.claude/journey/`: open
@@ -188,12 +193,14 @@ the ones you plan to fix.
    table, then an explicit check against the spec's own business rules. That second half is what
    surfaces spec-level findings (like the missing `EXCESSIVE_REFUNDS` gate) that reading the code
    alone won't show you:
-   > "Review these files together: `RefundController.java`, `RefundService.java`,
-   > `RefundPrivilege.java`, `PreRiskAssessmentClient.java`, `RefundRecordDao.java`,
-   > `RefundHealthIndicator.java`. For each file return a table: file | responsibility | key
-   > dependencies | hidden side effects. Then separately, compare the code against every
-   > business rule in `specs/refunds-s2i-phase1.spec.md`, rule by rule, and flag any rule the
-   > code does not appear to satisfy. Do not suggest fixes. Do not create the risk register yet."
+   ```
+   Review these files together: RefundController.java, RefundService.java,
+   RefundPrivilege.java, PreRiskAssessmentClient.java, RefundRecordDao.java,
+   RefundHealthIndicator.java. For each file return a table: file | responsibility | key
+   dependencies | hidden side effects. Then separately, compare the code against every
+   business rule in specs/refunds-s2i-phase1.spec.md, rule by rule, and flag any rule the
+   code does not appear to satisfy. Do not suggest fixes. Do not create the risk register yet.
+   ```
 4. **Read what comes back once, don't audit it against a checklist you don't have.** A realistic
    first pass surfaces roughly 11-12 of the sixteen findings this way, on top of the two or three
    you already found unaided in step 1. That's the expected yield, not a shortfall to go hunting
@@ -201,9 +208,11 @@ the ones you plan to fix.
    (a couple of decoys are seeded on purpose). That's real triage, a five-second gut check per
    row, not a re-read of the code.
 5. **Write the register.** Hand the finished review straight to Claude Code:
-   > "Write `RISK_REGISTER.md` as a table: ID | Name | Severity | Failure mode | Affected files |
-   > Impact | Status, using everything from the review above. Mark `REFUND_EXPIRY` 'Escalated,
-   > value undefined in spec, not defaulted,' never invent a number for it. All Status = Open."
+   ```
+   Write RISK_REGISTER.md as a table: ID | Name | Severity | Failure mode | Affected files |
+   Impact | Status, using everything from the review above. Mark REFUND_EXPIRY 'Escalated,
+   value undefined in spec, not defaulted,' never invent a number for it. All Status = Open.
+   ```
 6. **The one thing worth a manual glance, not a full audit.** Open the finished file and confirm
    the `REFUND_EXPIRY` row actually says escalated, not a made-up window value. That's the one
    spot an AI under pressure to look complete might quietly invent an answer instead of admitting
@@ -242,21 +251,20 @@ prompt with the subagent explicitly invoked.
 
 **Prompt.**
 
-> "Using the planner subagent: using `RISK_REGISTER.md` and `specs/refunds-s2i-phase1.spec.md`,
-> produce a remediation plan scoped to F1 and F2 plus building `processOnlineRefund()`. For each
-> step: target file(s), one-line fix or build task, expected post-fix state, success criterion.
-> Critical first. Save to `docs/plans/plan.md`."
+```
+Using the planner subagent: using RISK_REGISTER.md and specs/refunds-s2i-phase1.spec.md,
+produce a remediation plan scoped to F1 and F2 plus building processOnlineRefund(). For each
+step: target file(s), one-line fix or build task, expected post-fix state, success criterion.
+Critical first. Save to docs/plans/plan.md.
+```
 
 **Artifact.** `docs/plans/plan.md`.
 
 **Human gate.** Review the plan yourself against `payments-guardrails` and the spec's own
-acceptance criteria before moving on. Close any gap you find. Don't accept a plan that silently
-expands scope (a step touching F3–F14) or silently narrows it (no step for the online-path
-build).
-
-**Failure / recovery.** **Facilitator overhead running in parallel, not out of your budget:** the
-facilitator spot-checks 3 of your group's 14 register rows against the actual code (about 2
-minutes, outside participant time).
+acceptance criteria before moving on. Close any gap you find: patch `docs/plans/plan.md` by hand
+for something small, or re-run the planner prompt for anything that changes scope or ordering —
+don't just wave the gap through. Don't accept a plan that silently expands scope (a step touching
+F3–F16) or silently narrows it (no step for the online-path build).
 
 **Close the stage.** `/hand-off`: cite `docs/plans/plan.md` as this stage's artifact.
 
@@ -272,21 +280,23 @@ production code.
 
 **Prompt.**
 
-> "Write JUnit 5 tests asserting the INTENDED behavior:
->
-> - F1, LOGS ONLY: no authorization code appears in RefundService's log output (neither the
->   INFO success line nor the ERROR line in the catch block) for an offline refund. Use Spring
->   Boot's `OutputCaptureExtension` (already available via `spring-boot-starter-test`) with a
->   `CapturedOutput` parameter; do not add a new dependency for this. Do NOT assert the offline
->   RESPONSE body is scrubbed: the spec scopes authorization-code nulling to ONLINE refund
->   retrieval only, so the offline response legitimately still carries it. Assert it is still
->   present, to pin the scope of the fix.
-> - F2: a retried refund with the same idempotencyKey returns a decline/409 and creates no
->   second record.
->
-> Build request objects with `com.mc.pgs.refunds.support.RefundRequestFixtures`; do not
-> hand-assemble the nested `amounts`/`merchantOrder`/`wsApiSupport` structure. Deterministic
-> tests, follow existing conventions. Do not modify production code."
+```
+Write JUnit 5 tests asserting the INTENDED behavior:
+
+- F1, LOGS ONLY: no authorization code appears in RefundService's log output (neither the
+  INFO success line nor the ERROR line in the catch block) for an offline refund. Use Spring
+  Boot's OutputCaptureExtension (already available via spring-boot-starter-test) with a
+  CapturedOutput parameter; do not add a new dependency for this. Do NOT assert the offline
+  RESPONSE body is scrubbed: the spec scopes authorization-code nulling to ONLINE refund
+  retrieval only, so the offline response legitimately still carries it. Assert it is still
+  present, to pin the scope of the fix.
+- F2: a retried refund with the same idempotencyKey returns a decline/409 and creates no
+  second record.
+
+Build request objects with com.mc.pgs.refunds.support.RefundRequestFixtures; do not
+hand-assemble the nested amounts/merchantOrder/wsApiSupport structure. Deterministic
+tests, follow existing conventions. Do not modify production code.
+```
 
 **Why F1's slice is logs-only.** A test asserting the offline response is scrubbed would still be
 red after a completely correct fix. That's not proving it's broken, it's proving the test wrong.
@@ -321,7 +331,7 @@ confirming the red state.
 
 **Action.**
 
-1. **Fix F1.** Three separate steps, not one, run them in order:
+1. **Fix F1.** run them in order:
 
    **(a) Fix prompt**, normal, direct-prompt Claude Code, no subagent yet:
    ```
@@ -354,7 +364,11 @@ confirming the red state.
    A "yes, looks good" answer from the same conversation that wrote the fix isn't this step, no
    matter how confident it sounds.
 
-2. **Fix F2, same four sub-steps, same order:**
+   **(e) If the pr-reviewer returned FAIL:** address each specific finding with a new prompt (not
+   a same-thread "did I get this right"), re-run `mvn test`, then re-invoke the pr-reviewer
+   subagent fresh — repeat until PASS.
+
+2. **Fix F2, same steps, same order:**
 
    **(a) Fix prompt:**
    ```
@@ -377,7 +391,14 @@ confirming the red state.
    specific findings.
    ```
 
-   **(d) Confirm:** `Did you use the pr-reviewer subagent for that?`
+   **(d) Confirm the subagent actually ran:**
+   ```
+   Did you use the pr-reviewer subagent for that?
+   ```
+
+   **(e) If the pr-reviewer returned FAIL:** address each specific finding with a new prompt (not
+   a same-thread "did I get this right"), re-run `mvn test`, then re-invoke the pr-reviewer
+   subagent fresh — repeat until PASS.
 3. `mvn verify` will still fail on ArchUnit until F8 is addressed: move the
    privilege-evaluation logic out of `RefundController` into `RefundService`. You don't have to
    hunt for this by eye; the build tells you.
@@ -394,14 +415,7 @@ confirming the red state.
    new tests.
    ```
    Validate: `mvn verify`, which should pass everything now, including ArchUnit from step 3.
-5. **Watch the traps**, not a prompt but a review of what step 4 produced:
-   - Check the diff for any new dependency (`pom.xml`). A PAN-masking-library request should
-     fail the unknown-dependency check on its own. If it doesn't, reject the addition yourself.
-   - Confirm no settlement record gets written anywhere in the new code; decline it if offered.
-   - Check whether it implemented an `EXCESSIVE_REFUNDS` check or not. Either outcome is fine;
-     this isn't something to instruct for or against. If it's skipped, that's F6 reproduced live,
-     as designed. Note it, don't ask for the check now; it's backlog, not a Stage 4 target.
-6. Update `RISK_REGISTER.md` (status changes for F1, F2, F8) and `FIXES.md`: fill in the
+5. Update `RISK_REGISTER.md` (status changes for F1, F2, F8) and `FIXES.md`: fill in the
    existing table (don't replace it with prose; `grade_repo.py` reads actual table rows), one row
    per fix, with the `pr-reviewer` verdict.
 
@@ -431,11 +445,13 @@ prompt, don't rely on the task description alone to trigger it.
 
 **Prompt.**
 
-> "Using the planner subagent, in guide mode: write `docs/secure-features-guide.md` describing
-> proactive controls to adopt next, grounded in this codebase: correlation IDs end to end, wiring
-> up or removing the dead-weight `ENABLE_REFUND_REQUESTS`/`SUPPORT_EXTENDED_REFUNDS` privileges,
-> config externalisation for the settlement-notify URL, deny-by-default validation, and
-> structured error handling via `@ControllerAdvice`. No code changes."
+```
+Using the planner subagent, in guide mode: write docs/secure-features-guide.md describing
+proactive controls to adopt next, grounded in this codebase: correlation IDs end to end, wiring
+up or removing the dead-weight ENABLE_REFUND_REQUESTS/SUPPORT_EXTENDED_REFUNDS privileges,
+config externalisation for the settlement-notify URL, deny-by-default validation, and
+structured error handling via @ControllerAdvice. No code changes.
+```
 
 **Artifact.** `docs/secure-features-guide.md`.
 
@@ -557,7 +573,5 @@ Not file existence, actual content.
   participants)
 - [`docs/SOURCE_TRACEABILITY.md`](./docs/SOURCE_TRACEABILITY.md): which design decisions come
   from the real PGS spec pack and which are labelled lab assumptions
-- [`exercises/`](./exercises/): per-stage instructions, exact prompts, and a
-  predict-before-you-look hypothesis exercise
 - [`specs/refunds-s2i-phase1.spec.md`](./specs/refunds-s2i-phase1.spec.md): the spec this lab is
   built against

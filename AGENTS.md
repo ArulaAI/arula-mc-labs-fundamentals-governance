@@ -106,7 +106,7 @@ duplicate plugin-provided functionality:
 
 ## The seeded findings
 
-Fourteen findings are seeded on purpose, every one traceable to `pgs-lab-spec-pack.md` (Spec 1).
+Sixteen findings are seeded on purpose, every one traceable to `pgs-lab-spec-pack.md` (Spec 1).
 Two get fixed by hand, one is caught mechanically by the build, the rest are registered and
 deliberately left as backlog. Full detail (smallest-diff outline, exact test assertions, live
 traps) is in [docs/FACILITATOR_KEY.md](docs/FACILITATOR_KEY.md), facilitator-only. Do not "fix"
