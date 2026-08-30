@@ -522,6 +522,7 @@ Paths are what the grader and the gates look at.
 | 5 | `docs/secure-features-guide.md` |
 | 6 | `SECURITY.md` · `docs/workflow-tracker.md` · the grade card |
 | every stage | a `hand-off` entry in `docs/workflow-tracker.md` |
+| 7 (optional) | your own attack/defense notes (ungraded) |
 
 ## Grading
 
@@ -541,6 +542,25 @@ Deterministic checks against `.claude/rubrics/finish-the-refund.rubric.yaml`: th
 state always yields the same score. Checks register completeness, F1/F2/F8 resolution with a
 recorded reviewer verdict, F5 escalation (not defaulting), and the secure-features-guide content.
 Not file existence, actual content.
+
+---
+
+## Stage 7: Break the Gates (Optional, 20 min)
+
+**Objective.** Stress-test the governance stack you just learned to trust. Try to get Claude Code
+to violate a rule -- log a secret, write to a guarded path, sneak in an unknown dependency --
+without the hooks or gates catching it.
+
+You spent the lab working *within* governance. Now try to break it.
+
+**Action.** Read [`docs/CHALLENGE_BREAK_THE_GATES.md`](docs/CHALLENGE_BREAK_THE_GATES.md) for the
+full brief: rules of engagement, five attack-surface categories to explore, and what to document.
+
+**No rubric, no grading, no hand-off.** This is optional. If you find a real bypass, flag your
+facilitator -- that's a genuine contribution to the repo's governance, not a game artifact.
+
+**Share-out.** When time is up, the room compares notes. Thirty people trying thirty different
+angles will surface more about this governance stack than any single review could.
 
 ---
 
