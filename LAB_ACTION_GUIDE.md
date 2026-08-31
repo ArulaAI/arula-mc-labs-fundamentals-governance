@@ -194,12 +194,7 @@ the ones you plan to fix.
    surfaces spec-level findings (like the missing `EXCESSIVE_REFUNDS` gate) that reading the code
    alone won't show you:
    ```
-   Review these files together: RefundController.java, RefundService.java,
-   RefundPrivilege.java, PreRiskAssessmentClient.java, RefundRecordDao.java,
-   RefundHealthIndicator.java. For each file return a table: file | responsibility | key
-   dependencies | hidden side effects. Then separately, compare the code against every
-   business rule in specs/refunds-s2i-phase1.spec.md, rule by rule, and flag any rule the
-   code does not appear to satisfy. Do not suggest fixes. Do not create the risk register yet.
+   Review these files together: RefundController.java, RefundService.java, RefundPrivilege.java, PreRiskAssessmentClient.java, RefundRecordDao.java, RefundHealthIndicator.java. For each file return a table: file | responsibility | key dependencies | hidden side effects. Then separately, compare the code against every business rule in specs/refunds-s2i-phase1.spec.md, rule by rule, and flag any rule the code does not appear to satisfy. Do not suggest fixes. Do not create the risk register yet.
    ```
 4. **Read what comes back once, don't audit it against a checklist you don't have.** A realistic
    first pass surfaces roughly 11-12 of the sixteen findings this way, on top of the two or three
@@ -209,9 +204,7 @@ the ones you plan to fix.
    row, not a re-read of the code.
 5. **Write the register.** Hand the finished review straight to Claude Code:
    ```
-   Write RISK_REGISTER.md as a table: ID | Name | Severity | Failure mode | Affected files |
-   Impact | Status, using everything from the review above. Mark REFUND_EXPIRY 'Escalated,
-   value undefined in spec, not defaulted,' never invent a number for it. All Status = Open.
+   Write RISK_REGISTER.md as a table: ID | Name | Severity | Failure mode | Affected files | Impact | Status, using everything from the review above. Mark REFUND_EXPIRY 'Escalated, value undefined in spec, not defaulted,' never invent a number for it. All Status = Open.
    ```
 6. **The one thing worth a manual glance, not a full audit.** Open the finished file and confirm
    the `REFUND_EXPIRY` row actually says escalated, not a made-up window value. That's the one
@@ -242,20 +235,14 @@ stated explicitly, not silently skipped.
 **Objective.** An ordered remediation plan, Critical first, scoped to exactly F1, F2, and building
 `processOnlineRefund()`, nothing else.
 
-**Surface.** The `planner` subagent. **Say so explicitly in the prompt**: confirmed live this
-pass that leaving it implicit (just describing the task) does not reliably trigger the subagent;
-Claude Code will happily do the work itself in-session instead, which defeats the point of a
-plan produced independently of the register you just wrote. After running the prompt below, ask
-"did you use the planner subagent for that?" If the answer is no, ask it to redo the same
-prompt with the subagent explicitly invoked.
+**Surface.** The `planner` subagent. The prompt names it explicitly so Claude delegates to a
+fresh-context agent instead of planning in-session (which would defeat the point of producing a
+plan independently of the register you just wrote).
 
 **Prompt.**
 
 ```
-Using the planner subagent: using RISK_REGISTER.md and specs/refunds-s2i-phase1.spec.md,
-produce a remediation plan scoped to F1 and F2 plus building processOnlineRefund(). For each
-step: target file(s), one-line fix or build task, expected post-fix state, success criterion.
-Critical first. Save to docs/plans/plan.md.
+Using the planner subagent: break down RISK_REGISTER.md against specs/refunds-s2i-phase1.spec.md into an ordered remediation plan scoped to F1 and F2 plus building processOnlineRefund(). Per step: target file(s), one-line fix or build task, expected post-fix state, success criterion. Critical severity first. Save to docs/plans/plan.md.
 ```
 
 **Artifact.** `docs/plans/plan.md`.
@@ -283,19 +270,10 @@ production code.
 ```
 Write JUnit 5 tests asserting the INTENDED behavior:
 
-- F1, LOGS ONLY: no authorization code appears in RefundService's log output (neither the
-  INFO success line nor the ERROR line in the catch block) for an offline refund. Use Spring
-  Boot's OutputCaptureExtension (already available via spring-boot-starter-test) with a
-  CapturedOutput parameter; do not add a new dependency for this. Do NOT assert the offline
-  RESPONSE body is scrubbed: the spec scopes authorization-code nulling to ONLINE refund
-  retrieval only, so the offline response legitimately still carries it. Assert it is still
-  present, to pin the scope of the fix.
-- F2: a retried refund with the same idempotencyKey returns a decline/409 and creates no
-  second record.
+- F1, LOGS ONLY: no authorization code appears in RefundService's log output (neither the INFO success line nor the ERROR line in the catch block) for an offline refund. Use Spring Boot's OutputCaptureExtension (already available via spring-boot-starter-test) with a CapturedOutput parameter; do not add a new dependency for this. Do NOT assert the offline RESPONSE body is scrubbed: the spec scopes authorization-code nulling to ONLINE refund retrieval only, so the offline response legitimately still carries it. Assert it is still present, to pin the scope of the fix.
+- F2: a retried refund with the same idempotencyKey returns a decline/409 and creates no second record.
 
-Build request objects with com.mc.pgs.refunds.support.RefundRequestFixtures; do not
-hand-assemble the nested amounts/merchantOrder/wsApiSupport structure. Deterministic
-tests, follow existing conventions. Do not modify production code.
+Build request objects with com.mc.pgs.refunds.support.RefundRequestFixtures; do not hand-assemble the nested amounts/merchantOrder/wsApiSupport structure. Deterministic tests, follow existing conventions. Do not modify production code.
 ```
 
 **Why F1's slice is logs-only.** A test asserting the offline response is scrubbed would still be
@@ -335,9 +313,7 @@ confirming the red state.
 
    **(a) Fix prompt**, normal, direct-prompt Claude Code, no subagent yet:
    ```
-   Fix F1: the INFO log line in RefundService.processOfflineRefund() logs the full
-   RefundRecord, which includes the authorization code. Change it to log only non-sensitive
-   fields (transactionId, amountMinor, status), excluding authorizationCode entirely.
+   Fix F1: the INFO log line in RefundService.processOfflineRefund() logs the full RefundRecord, which includes the authorization code. Change it to log only non-sensitive fields (transactionId, amountMinor, status), excluding authorizationCode entirely.
    Smallest possible diff, don't touch anything else in this method.
    ```
 
@@ -348,21 +324,17 @@ confirming the red state.
    Confirm `RefundServiceLoggingTest.offlineRefund_successLine_doesNotLogAuthorizationCode`
    (red since Stage 3) is now green, and nothing else broke.
 
-   **(c) Review prompt**, only after (a) and (b), word for word, subagent named explicitly:
+   **(c) Review prompt**, only after (a) and (b), subagent named explicitly:
    ```
-   Using the pr-reviewer subagent: review my fix to F1 against coding-standards.md. You did
-   not write this code and have no knowledge of how it was written. Return PASS or FAIL with
-   specific findings.
+   Using the pr-reviewer subagent: review the diff of my F1 fix against coding-standards.md with clean context — you did not write this code. Return PASS or FAIL with specific findings.
    ```
    **Do not just ask "did I get this right" in the same conversation.** That's self-review,
    not the fresh-context review this stage is built to teach.
 
-   **(d) Confirm the subagent actually ran:**
-   ```
-   Did you use the pr-reviewer subagent for that?
-   ```
-   A "yes, looks good" answer from the same conversation that wrote the fix isn't this step, no
-   matter how confident it sounds.
+   **(d) Confirm the subagent actually ran.** Check Claude Code's tool-call output: you should
+   see an `Agent (pr-reviewer)` tool invocation, not just inline text. If the review happened
+   in-session without spawning a subagent, the whole point of fresh-context review is lost — ask
+   it to redo using the pr-reviewer subagent.
 
    **(e) If the pr-reviewer returned FAIL:** address each specific finding with a new prompt (not
    a same-thread "did I get this right"), re-run `mvn test`, then re-invoke the pr-reviewer
@@ -372,10 +344,7 @@ confirming the red state.
 
    **(a) Fix prompt:**
    ```
-   Fix F2: add the missing idempotency check to RefundService.processOfflineRefund().
-   refundRecordDao.findByIdempotencyKey() already exists and is ready to use, it just has no
-   caller yet. Look up the idempotency key before inserting; if a record already exists,
-   return a 409 decline instead of inserting a second record. Smallest possible diff.
+   Fix F2: add the missing idempotency check to RefundService.processOfflineRefund(). refundRecordDao.findByIdempotencyKey() already exists and is ready to use, it just has no caller yet. Look up the idempotency key before inserting; if a record already exists, return a 409 decline instead of inserting a second record. Smallest possible diff.
    ```
 
    **(b) Validate:**
@@ -386,15 +355,12 @@ confirming the red state.
 
    **(c) Review prompt:**
    ```
-   Using the pr-reviewer subagent: review my fix to F2 against coding-standards.md. You did
-   not write this code and have no knowledge of how it was written. Return PASS or FAIL with
-   specific findings.
+   Using the pr-reviewer subagent: review the diff of my F2 fix against coding-standards.md with clean context — you did not write this code. Return PASS or FAIL with specific findings.
    ```
 
-   **(d) Confirm the subagent actually ran:**
-   ```
-   Did you use the pr-reviewer subagent for that?
-   ```
+   **(d) Confirm the subagent actually ran.** Same check as F1: look for the `Agent (pr-reviewer)`
+   tool invocation in Claude Code's output. If it reviewed in-session, ask it to redo with the
+   subagent.
 
    **(e) If the pr-reviewer returned FAIL:** address each specific finding with a new prompt (not
    a same-thread "did I get this right"), re-run `mvn test`, then re-invoke the pr-reviewer
@@ -404,15 +370,7 @@ confirming the red state.
    hunt for this by eye; the build tells you.
 4. **Build `processOnlineRefund()`.** Run this prompt:
    ```
-   Build processOnlineRefund() in RefundService, replacing the current
-   UnsupportedOperationException. Follow the spec: honour the TOGGLE_ENABLE_ONLINE_REFUND
-   feature toggle. For online refunds, null the authorization code from the response unless
-   the return-authorization-data-to-merchants toggle is explicitly ON, the offline path is
-   unaffected and should keep returning the code as it does today. Do not write any
-   settlement record, that leg is downstream and out of scope. Online vs offline is selected
-   by the request body's wsApiSupport.refundAuthorization field, not a separate URL or
-   endpoint. Follow this file's existing conventions and use RefundRequestFixtures for any
-   new tests.
+   Build processOnlineRefund() in RefundService, replacing the current UnsupportedOperationException. Follow the spec: honour the TOGGLE_ENABLE_ONLINE_REFUND feature toggle. For online refunds, null the authorization code from the response unless the return-authorization-data-to-merchants toggle is explicitly ON, the offline path is unaffected and should keep returning the code as it does today. Do not write any settlement record, that leg is downstream and out of scope. Online vs offline is selected by the request body's wsApiSupport.refundAuthorization field, not a separate URL or endpoint. Follow this file's existing conventions and use RefundRequestFixtures for any new tests.
    ```
    Validate: `mvn verify`, which should pass everything now, including ArchUnit from step 3.
 5. Update `RISK_REGISTER.md` (status changes for F1, F2, F8) and `FIXES.md`: fill in the
@@ -440,17 +398,13 @@ to spec; `FIXES.md` has a real table row per fix with a recorded reviewer verdic
 
 **Objective.** Name what's next without doing it. No code changes this stage.
 
-**Surface.** `planner`, in guide mode. Same rule as Stage 2: name the subagent explicitly in the
-prompt, don't rely on the task description alone to trigger it.
+**Surface.** The `planner` subagent, in guide mode. Same rule as Stage 2: name the subagent
+explicitly so Claude delegates instead of doing it in-session.
 
 **Prompt.**
 
 ```
-Using the planner subagent, in guide mode: write docs/secure-features-guide.md describing
-proactive controls to adopt next, grounded in this codebase: correlation IDs end to end, wiring
-up or removing the dead-weight ENABLE_REFUND_REQUESTS/SUPPORT_EXTENDED_REFUNDS privileges,
-config externalisation for the settlement-notify URL, deny-by-default validation, and
-structured error handling via @ControllerAdvice. No code changes.
+Using the planner subagent in guide mode: analyze the open findings in RISK_REGISTER.md and produce docs/secure-features-guide.md — a forward-looking guide describing proactive controls to adopt next, grounded in this codebase: correlation IDs end to end, wiring up or removing the dead-weight ENABLE_REFUND_REQUESTS/SUPPORT_EXTENDED_REFUNDS privileges, config externalisation for the settlement-notify URL, deny-by-default validation, and structured error handling via @ControllerAdvice. No code changes.
 ```
 
 **Artifact.** `docs/secure-features-guide.md`.
