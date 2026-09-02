@@ -499,18 +499,24 @@ confirming the red state.
    hunt for this by eye; the build tells you.
 4. **Build `processOnlineRefund()`.** Run this prompt:
    ```
-   Build processOnlineRefund() in RefundService, replacing the current UnsupportedOperationException. 
-   
-   Follow the spec: honour the TOGGLE_ENABLE_ONLINE_REFUND feature toggle. For online refunds, null the authorization code from the response unless the return-authorization-data-to-merchants toggle is explicitly ON, the offline path is unaffected and should keep returning the code as it does today. 
-   
-   Do not write any settlement record, that leg is downstream and out of scope. Online vs offline is selected by the request body's wsApiSupport.refundAuthorization field, not a separate URL or endpoint. 
-   
-   Follow this file's existing conventions and use RefundRequestFixtures for any new tests.
+   Build processOnlineRefund() in RefundService.
+
+   Requirements:
+   - Replace the current UnsupportedOperationException.
+   - Honor TOGGLE_ENABLE_ONLINE_REFUND.
+   - For online refunds, return authorizationCode only when the
+     return-authorization-data-to-merchants toggle is explicitly ON.
+   - Preserve the existing offline refund response behavior.
+   - Do not create settlement records; settlement is downstream and out of scope.
+   - Determine online vs offline from wsApiSupport.refundAuthorization, not from
+     a separate endpoint.
+   - Follow existing RefundService conventions.
+   - Use RefundRequestFixtures for any new tests.
+   - Do not change unrelated refund behavior.
    ```
    Validate: `mvn verify`, which should pass everything now, including ArchUnit from step 3.
 5. Update `RISK_REGISTER.md` (status changes for F1, F2, F8) and `FIXES.md`: fill in the
-   existing table (don't replace it with prose; `grade_repo.py` reads actual table rows), one row
-   per fix, with the `pr-reviewer` verdict.
+   existing table.
 
 **Artifacts.** F1/F2/F8 fixes · `processOnlineRefund()` · updated `RISK_REGISTER.md` and
 `FIXES.md`.
@@ -564,9 +570,7 @@ can verify it from the artifacts alone.
 
 1. Run `mvn verify` and confirm it's fully green: ArchUnit, the compile/test suite, JaCoCo report
    generated.
-2. Update `SECURITY.md`: F1, F2, F8 as Security Controls (cite the fix and its `pr-reviewer`
-   verdict); F3, F4, F6, F7, F9–F16 as Known Risks; **F5 explicitly marked escalated, not
-   defaulted**, in its own row, not folded into the others.
+2. Update `SECURITY.md`.
 3. Confirm `docs/workflow-tracker.md` has a `/hand-off` entry for every stage (0 through 6), each
    one citing the specific artifact filename that stage produced, not a repeated template.
 4. Grade yourself:
