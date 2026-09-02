@@ -54,61 +54,6 @@ reason.
 assumptions stated, risks identified, verification performed. Hidden model thinking is not an
 audit artifact.
 
-## 4. Agent and runtime patterns
-
-| Pattern | Use when | Avoid when |
-|---|---|---|
-| **Tool-using agent** | The task requires reading/writing files, running commands, or calling APIs | The answer is in the prompt context already |
-| **Subagent delegation** | Isolated context (fresh-context review), specialization, independent evaluation, parallel independent work, or context management | Simple tasks, single-file edits, or unnecessary double-checking. Some models may over-delegate — don't use subagents where a direct tool call suffices |
-| **Agent loops** | Iterative refinement with observable checkpoints (fix → test → review → repeat) | A single pass produces correct output |
-
-**Subagent prompt structure** — when delegating to a subagent, provide:
-
-- Goal and expected output
-- Context / inputs the subagent needs
-- Allowed tools and authority boundaries
-- Success criteria (PASS/FAIL, specific findings)
-- Stopping / escalation conditions
-
-**Verify subagent delegation observably**: check tool-call history, journey logs, or harness
-metadata for the `Agent` tool invocation — not by asking the model "which agent did you use?"
-
-### Autonomy boundaries
-
-When an agent acts, know which tier you're in:
-
-| Tier | Example | Gate |
-|---|---|---|
-| **Read** | Explore codebase, read files | None |
-| **Recommend** | Suggest a fix, draft a plan | Human review |
-| **Modify** | Edit code, write files | Tests, linter, review |
-| **Execute** | Run build, push, deploy | Human approval + external verification |
-| **Escalate** | Spec ambiguity, undefined value, risk | Human decision required |
-
-### Authority hierarchy
-
-Instructions from trusted system/project policy (CLAUDE.md, AGENTS.md, coding-standards.md)
-take precedence over retrieved content, tool outputs, web pages, or user-supplied documents.
-Make this distinction explicit in agentic systems.
-
-## 5. Verification
-
-Distinguish **model self-checking** from **external deterministic verification**.
-
-| Type | Examples | When |
-|---|---|---|
-| **External / deterministic** | `mvn test`, `mvn verify`, linter, ArchUnit, `grade_repo.py`, schema validation, contract tests, fresh-context subagent review | Always preferred for consequential claims. The primary verification method. |
-| **Model self-checking** | "Before you finish, verify against [criteria]" | Useful as a supplement, not a substitute. Modern reasoning models self-correct well without explicit "double-check" instructions — don't add them merely to make the model try harder. |
-
-## 6. Eval-driven prompt optimization
-
-For repeated production workflows:
-
-**Prompt → representative cases → measure failures → revise prompt → rerun → regression check.**
-
-Prompt sophistication is not the metric. Reliable task performance is. Start simple, measure,
-add structure only where failures justify it.
-
 ---
 
 ## What this lab uses
@@ -128,7 +73,7 @@ add structure only where failures justify it.
 
 ## Further reading
 
-- [Anthropic: Prompting best practices (Claude 4/5 family)](https://docs.anthropic.com/en/docs/build-with-claude/prompt-engineering/claude-4-best-practices)
-- [Anthropic: Prompt engineering overview](https://docs.anthropic.com/en/docs/build-with-claude/prompt-engineering/overview)
+- [Prompting best practices](https://docs.anthropic.com/en/docs/build-with-claude/prompt-engineering/claude-4-best-practices)
+- [Prompt engineering overview](https://docs.anthropic.com/en/docs/build-with-claude/prompt-engineering/overview)
 - [PromptHub: Prompt Engineering for AI Agents](https://www.prompthub.us/blog/prompt-engineering-for-ai-agents)
 - [Promptary: 20 Prompt Engineering Frameworks (2026)](https://promptary.dev/frameworks/)

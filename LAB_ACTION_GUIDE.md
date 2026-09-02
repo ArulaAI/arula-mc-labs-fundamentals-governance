@@ -137,6 +137,8 @@ the ones you plan to fix.
      need to watch its log output in step 2.
    - Submit the same refund request twice, with the same `idempotencyKey`, from the second
      terminal:
+
+     **Mac / Linux**
      ```bash
      curl -s -X POST http://localhost:8080/card-payments/cpg-1001/refunds \
        -H "Content-Type: application/json" \
@@ -156,6 +158,36 @@ the ones you plan to fix.
          "merchantPrivileges": ["REFUNDS"]
        }' | jq
      ```
+
+     **Windows (PowerShell)**
+     ```powershell
+     $body = @{
+         merchantWsApiId = "merchant-0001"
+         paymentCurrency = "USD"
+         amounts = @{
+             transactionAmount = 2500
+         }
+         merchantOrder = @{
+             transactionReference = "ref-0001"
+         }
+         wsApiSupport = @{
+             transactionWsApiId = "txn-0001"
+             orderWsApiId = "order-0001"
+             wsApiVersion = "1.0"
+             targetTransactionWsApiId = $null
+             refundAuthorization = $null
+         }
+         idempotencyKey = "idem-demo-1"
+         merchantPrivileges = @("REFUNDS")
+     } | ConvertTo-Json -Depth 10
+
+     Invoke-RestMethod `
+         -Uri "http://localhost:8080/card-payments/cpg-1001/refunds" `
+         -Method Post `
+         -ContentType "application/json" `
+         -Body $body
+     ```
+
      Run that exact command a second time, unchanged. Expected: two `200 OK` responses, each with
      a **different** `authorizationCode`; two records, not one 409 on the retry.
    - Switch to the first terminal (still running `mvn spring-boot:run`) and look at the log:
@@ -163,6 +195,8 @@ the ones you plan to fix.
      `authorizationCode` (`AUTH-...`) in cleartext.
    - Back in the second terminal, try void, which shouldn't exist at all per
      `specs/OUT_OF_SCOPE.md`:
+
+     **Mac / Linux**
      ```bash
      curl -s -X POST http://localhost:8080/card-payments/cpg-1001/void \
        -H "Content-Type: application/json" \
@@ -182,6 +216,35 @@ the ones you plan to fix.
          "merchantPrivileges": ["REFUNDS"]
        }' | jq
      ```
+
+     **Windows (PowerShell)**
+     ```powershell
+     $body = @{
+         merchantWsApiId = "merchant-0001"
+         paymentCurrency = "USD"
+         amounts = @{
+             transactionAmount = 2500
+         }
+         merchantOrder = @{
+             transactionReference = "ref-0001"
+         }
+         wsApiSupport = @{
+             transactionWsApiId = "txn-0001"
+             orderWsApiId = "order-0001"
+             wsApiVersion = "1.0"
+             targetTransactionWsApiId = $null
+             refundAuthorization = $null
+         }
+         idempotencyKey = "idem-void-1"
+         merchantPrivileges = @("REFUNDS")
+     } | ConvertTo-Json -Depth 10
+
+     Invoke-RestMethod `
+         -Uri "http://localhost:8080/card-payments/cpg-1001/void" `
+         -Method Post `
+         -ContentType "application/json" `
+         -Body $body
+     ```
      Expected: a `200 OK` with a full refund record back, `"status": "VOIDED"`. Note: it looks up
      the record by `transactionId`, not `idempotencyKey`, so the `idempotencyKey` you send here
      is ignored, and you'll see the *original* refund's `idempotencyKey` (`idem-demo-1`) echoed
@@ -194,7 +257,11 @@ the ones you plan to fix.
    surfaces spec-level findings (like the missing `EXCESSIVE_REFUNDS` gate) that reading the code
    alone won't show you:
    ```
-   Review these files together: RefundController.java, RefundService.java, RefundPrivilege.java, PreRiskAssessmentClient.java, RefundRecordDao.java, RefundHealthIndicator.java. For each file return a table: file | responsibility | key dependencies | hidden side effects. Then separately, compare the code against every business rule in specs/refunds-s2i-phase1.spec.md, rule by rule, and flag any rule the code does not appear to satisfy. Do not suggest fixes. Do not create the risk register yet.
+   Review these files together: RefundController.java, RefundService.java, RefundPrivilege.java, PreRiskAssessmentClient.java, RefundRecordDao.java, RefundHealthIndicator.java. For each file return a table: file | responsibility | key dependencies | hidden side effects. 
+   
+   Then separately, compare the code against every business rule in specs/refunds-s2i-phase1.spec.md, rule by rule, and flag any rule the code does not appear to satisfy. 
+   
+   Do not suggest fixes. Do not create the risk register yet.
    ```
 4. **Read what comes back once, don't audit it against a checklist you don't have.** A realistic
    first pass surfaces roughly 11-12 of the sixteen findings this way, on top of the two or three
@@ -204,7 +271,12 @@ the ones you plan to fix.
    row, not a re-read of the code.
 5. **Write the register.** Hand the finished review straight to Claude Code:
    ```
-   Write RISK_REGISTER.md as a table: ID | Name | Severity | Failure mode | Affected files | Impact | Status, using everything from the review above. Mark REFUND_EXPIRY 'Escalated, value undefined in spec, not defaulted,' never invent a number for it. All Status = Open.
+   Write RISK_REGISTER.md as a table: ID | Name | Severity | Failure mode | Affected files | Impact | Status, using everything from the review above. 
+   
+   Mark REFUND_EXPIRY 'Escalated, value undefined in spec, not defaulted,' 
+   
+   Never invent a number for it. 
+   All Status = Open.
    ```
 6. **The one thing worth a manual glance, not a full audit.** Open the finished file and confirm
    the `REFUND_EXPIRY` row actually says escalated, not a made-up window value. That's the one
@@ -242,7 +314,12 @@ plan independently of the register you just wrote).
 **Prompt.**
 
 ```
-Using the planner subagent: break down RISK_REGISTER.md against specs/refunds-s2i-phase1.spec.md into an ordered remediation plan scoped to F1 and F2 plus building processOnlineRefund(). Per step: target file(s), one-line fix or build task, expected post-fix state, success criterion. Critical severity first. Save to docs/plans/plan.md.
+Using the planner subagent: break down RISK_REGISTER.md against specs/refunds-s2i-phase1.spec.md and specs/OUT_OF_SCOPE.md into an ordered remediation plan scoped to F1 and F2 plus building processOnlineRefund(). 
+
+Per step: target file(s), one-line fix or build task, expected post-fix state, success criterion. 
+
+Critical severity first. 
+Save to docs/plans/plan.md.
 ```
 
 **Artifact.** `docs/plans/plan.md`.
@@ -265,15 +342,55 @@ online-path build, each naming its target file(s) and a concrete success criteri
 **Objective.** Two new red test slices, proving F1 and F2 are real, before touching any
 production code.
 
-**Prompt.**
+**Prompt 1 - F1.**
 
 ```
-Write JUnit 5 tests asserting the INTENDED behavior:
+ROLE
+Act as a senior Java test engineer.
 
-- F1, LOGS ONLY: no authorization code appears in RefundService's log output (neither the INFO success line nor the ERROR line in the catch block) for an offline refund. Use Spring Boot's OutputCaptureExtension (already available via spring-boot-starter-test) with a CapturedOutput parameter; do not add a new dependency for this. Do NOT assert the offline RESPONSE body is scrubbed: the spec scopes authorization-code nulling to ONLINE refund retrieval only, so the offline response legitimately still carries it. Assert it is still present, to pin the scope of the fix.
-- F2: a retried refund with the same idempotencyKey returns a decline/409 and creates no second record.
+CONTEXT
+Use @RISK_REGISTER.md and @specs/refunds-s2i-phase1.spec.md as source of truth.
+Follow existing test conventions and repository guardrails.
 
-Build request objects with com.mc.pgs.refunds.support.RefundRequestFixtures; do not hand-assemble the nested amounts/merchantOrder/wsApiSupport structure. Deterministic tests, follow existing conventions. Do not modify production code.
+TASK
+For F1, write JUnit 5 tests proving an offline refund never logs the
+authorization code in RefundService's INFO or ERROR paths.
+Use OutputCaptureExtension/CapturedOutput.
+Assert the offline response still contains the authorization code.
+
+CONSTRAINTS
+- Use RefundRequestFixtures.
+- Add no dependencies.
+- Do not modify production code.
+- Keep the tests deterministic.
+
+VERIFY
+Run only the generated F1 tests.
+Report whether they PASS or FAIL, then stop.
+```
+
+**Prompt 2 - F2.**
+
+```
+ROLE
+Act as a senior Java test engineer.
+
+CONTEXT
+Use @RISK_REGISTER.md and @specs/refunds-s2i-phase1.spec.md as source of truth.
+Follow existing test conventions and repository guardrails.
+
+TASK
+For F2, write a JUnit 5 test proving that retrying a refund with the same
+idempotencyKey returns 409 and creates no second record.
+
+CONSTRAINTS
+- Use RefundRequestFixtures.
+- Do not modify production code.
+- Keep the test deterministic.
+
+VERIFY
+Run only the generated F2 test.
+Report whether it PASSES or FAILS, then stop.
 ```
 
 **Why F1's slice is logs-only.** A test asserting the offline response is scrubbed would still be
@@ -304,8 +421,7 @@ confirming the red state.
 
 ## Stage 4: Remediate and build (35 min · the largest block)
 
-**Objective.** F1 and F2 fixed under fresh-context review, F8 resolved, and
-`processOnlineRefund()` built to spec.
+**Objective.** Fix F1 and F2, validate the changes through fresh-context review, resolve the F8 architecture violation, and complete processOnlineRefund() to the approved specification.
 
 **Action.**
 
@@ -313,16 +429,21 @@ confirming the red state.
 
    **(a) Fix prompt**, normal, direct-prompt Claude Code, no subagent yet:
    ```
-   Fix F1: the INFO log line in RefundService.processOfflineRefund() logs the full RefundRecord, which includes the authorization code. Change it to log only non-sensitive fields (transactionId, amountMinor, status), excluding authorizationCode entirely.
-   Smallest possible diff, don't touch anything else in this method.
+   Fix F1 in RefundService.processOfflineRefund().
+
+   Requirements:
+   - Stop logging the full RefundRecord in the INFO success path.
+   - Log only non-sensitive fields: transactionId, amountMinor, and status.
+   - Do not log authorizationCode.
+   - Make the smallest possible diff.
+   - Do not change any other behavior in this method.
    ```
 
    **(b) Validate it yourself:**
    ```bash
    mvn test
    ```
-   Confirm `RefundServiceLoggingTest.offlineRefund_successLine_doesNotLogAuthorizationCode`
-   (red since Stage 3) is now green, and nothing else broke.
+   Confirm the tests(red since Stage 3) is now green, and nothing else broke.
 
    **(c) Review prompt**, only after (a) and (b), subagent named explicitly:
    ```
@@ -344,14 +465,22 @@ confirming the red state.
 
    **(a) Fix prompt:**
    ```
-   Fix F2: add the missing idempotency check to RefundService.processOfflineRefund(). refundRecordDao.findByIdempotencyKey() already exists and is ready to use, it just has no caller yet. Look up the idempotency key before inserting; if a record already exists, return a 409 decline instead of inserting a second record. Smallest possible diff.
+   Fix F2 in RefundService.processOfflineRefund().
+
+   Requirements:
+   - Check the idempotencyKey before inserting a refund.
+   - Use the existing refundRecordDao.findByIdempotencyKey().
+   - If the key already exists, return a 409 decline.
+   - Do not create a second refund record.
+   - Make the smallest possible diff.
+   - Do not change any unrelated refund behavior.
    ```
 
    **(b) Validate:**
    ```bash
    mvn test
    ```
-   Confirm `RefundServiceIdempotencyTest` is now green.
+   Confirm the tests are now green.
 
    **(c) Review prompt:**
    ```
@@ -370,7 +499,13 @@ confirming the red state.
    hunt for this by eye; the build tells you.
 4. **Build `processOnlineRefund()`.** Run this prompt:
    ```
-   Build processOnlineRefund() in RefundService, replacing the current UnsupportedOperationException. Follow the spec: honour the TOGGLE_ENABLE_ONLINE_REFUND feature toggle. For online refunds, null the authorization code from the response unless the return-authorization-data-to-merchants toggle is explicitly ON, the offline path is unaffected and should keep returning the code as it does today. Do not write any settlement record, that leg is downstream and out of scope. Online vs offline is selected by the request body's wsApiSupport.refundAuthorization field, not a separate URL or endpoint. Follow this file's existing conventions and use RefundRequestFixtures for any new tests.
+   Build processOnlineRefund() in RefundService, replacing the current UnsupportedOperationException. 
+   
+   Follow the spec: honour the TOGGLE_ENABLE_ONLINE_REFUND feature toggle. For online refunds, null the authorization code from the response unless the return-authorization-data-to-merchants toggle is explicitly ON, the offline path is unaffected and should keep returning the code as it does today. 
+   
+   Do not write any settlement record, that leg is downstream and out of scope. Online vs offline is selected by the request body's wsApiSupport.refundAuthorization field, not a separate URL or endpoint. 
+   
+   Follow this file's existing conventions and use RefundRequestFixtures for any new tests.
    ```
    Validate: `mvn verify`, which should pass everything now, including ArchUnit from step 3.
 5. Update `RISK_REGISTER.md` (status changes for F1, F2, F8) and `FIXES.md`: fill in the
