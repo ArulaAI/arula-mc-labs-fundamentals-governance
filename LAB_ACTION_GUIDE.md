@@ -421,7 +421,7 @@ confirming the red state.
 
 ## Stage 4: Remediate and build (35 min · the largest block)
 
-**Objective.** Fix F1 and F2, validate the changes through fresh-context review, resolve the F8 architecture violation, and complete processOnlineRefund() to the approved specification.
+**Objective.** Fix F1 and F2, validate the changes through fresh-context review, and resolve the F8 architecture violation.
 
 **Action.**
 
@@ -494,32 +494,66 @@ confirming the red state.
    **(e) If the pr-reviewer returned FAIL:** address each specific finding with a new prompt (not
    a same-thread "did I get this right"), re-run `mvn test`, then re-invoke the pr-reviewer
    subagent fresh — repeat until PASS.
-3. `mvn verify` will still fail on ArchUnit until F8 is addressed: move the
-   privilege-evaluation logic out of `RefundController` into `RefundService`. You don't have to
-   hunt for this by eye; the build tells you.
-4. **Build `processOnlineRefund()`.** Run this prompt:
-   ```
-   Build processOnlineRefund() in RefundService.
+3. **Run the full verification lifecycle.**
 
-   Requirements:
-   - Replace the current UnsupportedOperationException.
-   - Honor TOGGLE_ENABLE_ONLINE_REFUND.
-   - For online refunds, return authorizationCode only when the
-     return-authorization-data-to-merchants toggle is explicitly ON.
-   - Preserve the existing offline refund response behavior.
-   - Do not create settlement records; settlement is downstream and out of scope.
-   - Determine online vs offline from wsApiSupport.refundAuthorization, not from
-     a separate endpoint.
-   - Follow existing RefundService conventions.
-   - Use RefundRequestFixtures for any new tests.
-   - Do not change unrelated refund behavior.
+   F1 and F2 have now been fixed, tested, and independently reviewed.
+
+   Broaden the verification surface:
+
+   ```bash
+   mvn verify
    ```
-   Validate: `mvn verify`, which should pass everything now, including ArchUnit from step 3.
+
+   The F1 and F2 tests should remain green, but the build is expected to fail on F8.
+
+   ArchitectureIT detects that:
+
+   `RefundController -> RefundRecordDao`
+
+   violates the repository's intended layering:
+
+   `Controller -> Service -> Repository`
+
+   You do not need to discover this violation manually. The deterministic architecture check identifies it for you.
+
+4. **Resolve F8.**
+
+   **Prompt to run:**
+   ```
+   Resolve F8 only.
+
+   REQUIREMENTS
+   - Remove the direct dependency from RefundController to RefundRecordDao.
+   - Move the existing Void privilege check and persistence interaction behind RefundService.
+   - Preserve the current Void endpoint behavior.
+
+   BOUNDARIES
+   - F3 remains registered and out of scope.
+   - Do not remove, redesign, or expand the Void flow.
+   - Do not address unrelated findings.
+   - Do not add dependencies.
+   - Make the smallest possible production-code change.
+   - Follow existing repository conventions and guardrails.
+
+   VERIFY
+   Run mvn verify.
+
+   Report:
+   - PASS or FAIL
+   - Files changed
+   - Brief summary of the F8 remediation
+   - Any remaining verification failure
+
+   Then stop.
+   ```
+
+   Then stop.
+
+   The purpose of this change is only to restore the architectural boundary.
 5. Update `RISK_REGISTER.md` (status changes for F1, F2, F8) and `FIXES.md`: fill in the
    existing table.
 
-**Artifacts.** F1/F2/F8 fixes · `processOnlineRefund()` · updated `RISK_REGISTER.md` and
-`FIXES.md`.
+**Artifacts.** F1/F2/F8 fixes · updated `RISK_REGISTER.md` and `FIXES.md`.
 
 **Human gate.** Each fix reviewed fresh-context before you move to the next one. The failure
 mode this gate exists to catch is *accepting a fix unread because you already believe it works*.
@@ -527,11 +561,11 @@ mode this gate exists to catch is *accepting a fix unread because you already be
 **Failure / recovery.** If your group is behind by the 20-minute mark of this stage, ask your
 facilitator for the `reference/` fallback rather than rushing the fresh-context review step.
 
-**Close the stage.** `/hand-off`: cite the fixes, `processOnlineRefund()`, `RISK_REGISTER.md`,
-and `FIXES.md` as this stage's artifacts.
+**Close the stage.** `/hand-off`: cite the fixes, `RISK_REGISTER.md`, and `FIXES.md` as this
+stage's artifacts.
 
-**Invariant.** `mvn verify` passes ArchUnit; F1/F2/F8 all resolved; `processOnlineRefund()` built
-to spec; `FIXES.md` has a real table row per fix with a recorded reviewer verdict.
+**Invariant.** `mvn verify` passes ArchUnit; F1/F2/F8 all resolved; `FIXES.md` has a real table
+row per fix with a recorded reviewer verdict.
 
 ---
 
